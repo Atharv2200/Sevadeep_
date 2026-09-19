@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" width="100%" height="100%">
+  <defs>
+    <!-- Flame Gradient -->
+    <linearGradient id="flameOrange" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#d9381e" />
+      <stop offset="45%" stop-color="#f37021" />
+      <stop offset="100%" stop-color="#fa9d1c" />
+    </linearGradient>
+    <linearGradient id="flameInner" x1="0%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#b81d24" />
+      <stop offset="100%" stop-color="#f37021" />
+    </linearGradient>
+    <linearGradient id="redHand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#be1e2d" />
+      <stop offset="100%" stop-color="#9e111d" />
+    </linearGradient>
+    <linearGradient id="orangeHand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f37021" />
+      <stop offset="100%" stop-color="#d95300" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(0, 5)">
+    <!-- FLAME SECTION -->
+    <!-- Main Outer Flame (Orange) -->
+    <path d="M 100 8 C 114 26 128 44 121 66 C 115 82 102 91 100 95 C 98 91 85 82 79 66 C 72 44 86 26 100 8 Z" fill="url(#flameOrange)" />
+    
+    <!-- Outer Flame S-Curve Sweep to the Right Tip -->
+    <path d="M 100 8 C 118 20 132 40 126 62 C 121 78 106 90 100 95 C 104 88 116 75 114 60 C 112 43 103 26 100 8 Z" fill="#f8941d" opacity="0.9" />
+
+    <!-- Inner Flame Tongue Left (Red/Crimson accent) -->
+    <path d="M 100 95 C 93 85 86 70 89 54 C 91 42 97 30 100 22 C 95 32 89 44 91 58 C 93 72 98 84 100 95 Z" fill="url(#flameInner)" />
+
+    <!-- Flame Center Tongue Light Orange Glow -->
+    <path d="M 100 30 C 108 45 112 60 105 78 C 102 85 100 90 100 95 C 100 90 98 85 95 78 C 88 60 92 45 100 30 Z" fill="#ffb74d" />
+    
+    <!-- White Gap between Flame and Hands Base -->
+    <circle cx="100" cy="97" r="2.5" fill="#ffffff" />
+
+    <!-- HANDS / DIYA BOWL SECTION -->
+    <!-- Right Hand (Orange - Underneath / Right wing to Left Swoop) -->
+    <path d="M 190 92 C 160 98 120 130 90 148 C 110 144 140 132 165 116 C 178 107 186 98 190 92 Z" fill="url(#orangeHand)" />
+    <path d="M 190 92 C 152 98 110 122 70 148 C 105 148 145 132 172 114 C 182 106 188 98 190 92 Z" fill="url(#orangeHand)" />
+
+    <!-- Full Right Hand Swoop Curve -->
+    <path d="M 190 92 C 145 95 95 125 65 146 C 95 149 140 135 170 114 C 182 105 188 97 190 92 Z" fill="#f37021" />
+    
+    <!-- Outer Right Diya Curve -->
+    <path d="M 190 92 C 165 110 135 135 90 148 C 125 145 160 128 190 92 Z" fill="#e05800" />
+    
+    <!-- Left Hand (Red - Front / Left wing swooping right) -->
+    <path d="M 35 90 C 70 95 115 115 136 128 C 110 126 70 118 45 106 C 39 103 36 96 35 90 Z" fill="url(#redHand)" />
+    
+    <!-- Precise Main Diya Left & Right Combination Paths -->
+    <!-- Left Wing Red Leaf -->
+    <path d="M 32 90 C 50 100 80 120 135 128 C 115 136 80 136 50 120 C 38 112 33 100 32 90 Z" fill="#be1e2d" />
+    
+    <!-- Right Wing Orange Leaf -->
+    <path d="M 168 90 C 150 100 120 120 65 128 C 85 136 120 136 150 120 C 162 112 167 100 168 90 Z" fill="#f37021" />
+
+    <!-- Unified Diya Base Shape overlaying exactly like original logo -->
+    <!-- Base Red Bowl (Left Hand) -->
+    <path d="M 30 92 C 60 98 100 125 130 130 C 105 142 65 132 42 118 C 34 110 31 100 30 92 Z" fill="#b81d24" />
+    
+    <!-- Base Orange Bowl (Right Hand) -->
+    <path d="M 170 92 C 140 98 100 125 70 130 C 95 142 135 132 158 118 C 166 110 169 100 170 92 Z" fill="#f37021" />
+  </g>
+</svg>
