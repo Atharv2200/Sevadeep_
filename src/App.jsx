@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import Logo from './components/Logo';
 import { 
   Heart, 
   BookOpen, 
@@ -81,9 +82,8 @@ function App() {
       <nav className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-md z-50">
         <div className="container-custom">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <Heart className="w-8 h-8 text-primary-600" />
-              <span className="text-2xl font-bold text-gray-800">Sevadeep</span>
+            <div className="cursor-pointer" onClick={() => scrollToSection('home')}>
+              <Logo className="w-10 h-10" showText textClassName="text-2xl font-bold text-gray-800" />
             </div>
             
             <div className="hidden md:flex items-center gap-8">
@@ -155,8 +155,9 @@ function App() {
               transition={{ duration: 0.8 }}
               className="relative"
             >
-              <div className="w-full h-96 bg-gradient-to-br from-primary-500 to-orange-500 rounded-3xl shadow-2xl flex items-center justify-center">
-                <Heart className="w-32 h-32 text-white" />
+              <div className="w-full h-96 bg-gradient-to-br from-red-600 via-orange-500 to-amber-500 rounded-3xl shadow-2xl flex items-center justify-center p-8 relative overflow-hidden">
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] rounded-3xl"></div>
+                <Logo className="w-48 h-48 drop-shadow-2xl relative z-10" />
               </div>
               <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-yellow-400 rounded-2xl shadow-lg flex items-center justify-center">
                 <HandHeart className="w-12 h-12 text-white" />
@@ -461,8 +462,7 @@ function App() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Heart className="w-8 h-8 text-primary-500" />
-                <span className="text-2xl font-bold">Sevadeep</span>
+                <Logo className="w-10 h-10" showText textClassName="text-2xl font-bold text-white" />
               </div>
               <p className="text-gray-400">
                 Spreading hope and kindness through community service and social welfare activities.
