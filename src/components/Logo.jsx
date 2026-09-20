@@ -1,10 +1,16 @@
 import React from 'react';
 
-export default function Logo({ className = "w-10 h-10", showText = false, textClassName = "text-2xl font-bold text-gray-800" }) {
+export default function Logo({ 
+  className, 
+  showText = false, 
+  textClassName,
+  text = "Sevadeep",
+  viewBox = "0 0 200 180"
+}) {
   return (
     <div className="flex items-center gap-3 select-none">
       <svg
-        viewBox="0 0 200 180"
+        viewBox={viewBox}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className={className}
@@ -93,7 +99,7 @@ export default function Logo({ className = "w-10 h-10", showText = false, textCl
 
         </g>
       </svg>
-      {showText && <span className={textClassName}>Sevadeep</span>}
+      {showText && <span className={textClassName}>{text}</span>}
     </div>
   );
 }
