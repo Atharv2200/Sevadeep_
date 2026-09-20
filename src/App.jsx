@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Logo from './components/Logo';
-import { 
-  Heart, 
-  BookOpen, 
-  Shirt, 
-  Trash2, 
-  Users, 
+import VolunteerDashboard from './components/VolunteerDashboard';
+import AttendanceScanner from './components/AttendanceScanner';
+import ContributionTracker from './components/ContributionTracker';
+import ContributionVerification from './components/ContributionVerification';
+import {
+  Heart,
+  BookOpen,
+  Shirt,
+  Trash2,
+  Users,
   HandHeart,
   Menu,
   X,
@@ -16,11 +20,20 @@ import {
   Facebook,
   Twitter,
   Instagram,
-  Linkedin
+  Linkedin,
+  User,
+  QrCode,
+  Clock,
+  ShieldCheck,
+  Smile,
+  Sparkles,
+  Star,
+  HelpCircle
 } from 'lucide-react';
 
 function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentView, setCurrentView] = useState('home');
 
   const activities = [
     {
@@ -54,7 +67,7 @@ function App() {
       color: "from-purple-500 to-purple-600"
     },
     {
-      icon: <Heart className="w-12 h-12" />,
+      icon: <User className="w-12 h-12" />,
       title: "Elderly Care",
       description: "Supporting senior citizens with companionship, healthcare, and daily necessities.",
       color: "from-pink-500 to-pink-600"
@@ -76,6 +89,26 @@ function App() {
     }
   };
 
+  const navigateToView = (view) => {
+    setCurrentView(view);
+    setMobileMenuOpen(false);
+    window.scrollTo(0, 0);
+  };
+
+  // Render different views based on currentView
+  if (currentView === 'dashboard') {
+    return <VolunteerDashboard onNavigate={navigateToView} />;
+  }
+  if (currentView === 'scanner') {
+    return <AttendanceScanner onNavigate={navigateToView} />;
+  }
+  if (currentView === 'tracker') {
+    return <ContributionTracker onNavigate={navigateToView} />;
+  }
+  if (currentView === 'verification') {
+    return <ContributionVerification onNavigate={navigateToView} />;
+  }
+
   return (
     <div className="min-h-screen">
       {/* Navigation */}
@@ -85,17 +118,34 @@ function App() {
             <div className="cursor-pointer" onClick={() => scrollToSection('home')}>
               <Logo className="w-10 h-10" showText textClassName="text-2xl font-bold text-gray-800" />
             </div>
-            
-            <div className="hidden md:flex items-center gap-8">
-              <button onClick={() => scrollToSection('home')} className="text-gray-700 hover:text-primary-600 transition-colors font-medium">Home</button>
+
+            <div className="hidden md:flex items-center gap-6">
+              <button onClick={() => navigateToView('home')} className="text-gray-700 hover:text-primary-600 transition-colors font-medium">Home</button>
               <button onClick={() => scrollToSection('about')} className="text-gray-700 hover:text-primary-600 transition-colors font-medium">About</button>
               <button onClick={() => scrollToSection('activities')} className="text-gray-700 hover:text-primary-600 transition-colors font-medium">Activities</button>
               <button onClick={() => scrollToSection('gallery')} className="text-gray-700 hover:text-primary-600 transition-colors font-medium">Gallery</button>
               <button onClick={() => scrollToSection('contact')} className="text-gray-700 hover:text-primary-600 transition-colors font-medium">Contact</button>
+              <div className="h-6 w-px bg-gray-300"></div>
+              <button onClick={() => navigateToView('dashboard')} className="flex items-center gap-2 text-gray-700 hover:text-primary-600 transition-colors font-medium">
+                <User className="w-4 h-4" />
+                Dashboard
+              </button>
+              <button onClick={() => navigateToView('scanner')} className="flex items-center gap-2 text-gray-700 hover:text-primary-600 transition-colors font-medium">
+                <QrCode className="w-4 h-4" />
+                Scanner
+              </button>
+              <button onClick={() => navigateToView('tracker')} className="flex items-center gap-2 text-gray-700 hover:text-primary-600 transition-colors font-medium">
+                <Clock className="w-4 h-4" />
+                Tracker
+              </button>
+              <button onClick={() => navigateToView('verification')} className="flex items-center gap-2 text-gray-700 hover:text-primary-600 transition-colors font-medium">
+                <ShieldCheck className="w-4 h-4" />
+                Verify
+              </button>
               <button onClick={() => scrollToSection('contact')} className="btn-primary">Volunteer Now</button>
             </div>
 
-            <button 
+            <button
               className="md:hidden p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
@@ -106,17 +156,34 @@ function App() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="md:hidden bg-white border-t"
           >
             <div className="container-custom py-4 flex flex-col gap-4">
-              <button onClick={() => scrollToSection('home')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2">Home</button>
+              <button onClick={() => navigateToView('home')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2">Home</button>
               <button onClick={() => scrollToSection('about')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2">About</button>
               <button onClick={() => scrollToSection('activities')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2">Activities</button>
               <button onClick={() => scrollToSection('gallery')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2">Gallery</button>
               <button onClick={() => scrollToSection('contact')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2">Contact</button>
+              <div className="border-t border-gray-200 pt-2"></div>
+              <button onClick={() => navigateToView('dashboard')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2 flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Dashboard
+              </button>
+              <button onClick={() => navigateToView('scanner')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2 flex items-center gap-2">
+                <QrCode className="w-4 h-4" />
+                Scanner
+              </button>
+              <button onClick={() => navigateToView('tracker')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Tracker
+              </button>
+              <button onClick={() => navigateToView('verification')} className="text-left text-gray-700 hover:text-primary-600 transition-colors font-medium py-2 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                Verify
+              </button>
               <button onClick={() => scrollToSection('contact')} className="btn-primary w-full">Volunteer Now</button>
             </div>
           </motion.div>
@@ -127,13 +194,13 @@ function App() {
       <section id="home" className="pt-16 min-h-screen flex items-center bg-gradient-to-br from-primary-50 via-white to-orange-50">
         <div className="container-custom section-padding">
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
             >
               <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Spreading Hope & 
+                Spreading Hope &
                 <span className="text-primary-600"> Kindness</span>
               </h1>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
@@ -148,8 +215,8 @@ function App() {
                 </button>
               </div>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8 }}
@@ -160,7 +227,7 @@ function App() {
                 <Logo className="w-48 h-48 drop-shadow-2xl relative z-10" />
               </div>
               <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-yellow-400 rounded-2xl shadow-lg flex items-center justify-center">
-                <HandHeart className="w-12 h-12 text-white" />
+                <HelpCircle className="w-12 h-12 text-white" />
               </div>
               <div className="absolute -top-6 -right-6 w-20 h-20 bg-green-400 rounded-2xl shadow-lg flex items-center justify-center">
                 <BookOpen className="w-10 h-10 text-white" />
@@ -175,7 +242,7 @@ function App() {
         <div className="container-custom">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -193,7 +260,7 @@ function App() {
       {/* About Section */}
       <section id="about" className="section-padding bg-white">
         <div className="container-custom">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -206,7 +273,7 @@ function App() {
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
@@ -239,14 +306,14 @@ function App() {
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
               className="grid grid-cols-2 gap-4"
             >
               <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-8 rounded-2xl text-white">
-                <Heart className="w-12 h-12 mb-4" />
+                <Smile className="w-12 h-12 mb-4" />
                 <h4 className="text-xl font-bold mb-2">Compassion</h4>
                 <p className="text-primary-100 text-sm">Serving with love and empathy</p>
               </div>
@@ -261,7 +328,7 @@ function App() {
                 <p className="text-green-100 text-sm">Empowering through knowledge</p>
               </div>
               <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-8 rounded-2xl text-white mt-8">
-                <HandHeart className="w-12 h-12 mb-4" />
+                <Sparkles className="w-12 h-12 mb-4" />
                 <h4 className="text-xl font-bold mb-2">Service</h4>
                 <p className="text-orange-100 text-sm">Dedicated to helping others</p>
               </div>
@@ -273,7 +340,7 @@ function App() {
       {/* Activities Section */}
       <section id="activities" className="section-padding bg-gray-50">
         <div className="container-custom">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -309,7 +376,7 @@ function App() {
       {/* Gallery Section */}
       <section id="gallery" className="section-padding bg-white">
         <div className="container-custom">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -322,18 +389,29 @@ function App() {
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+            {[
+              { src: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400&h=400&fit=crop', alt: 'Food Distribution' },
+              { src: 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=400&h=400&fit=crop', alt: 'Education Support' },
+              { src: 'https://images.unsplash.com/photo-1584515933487-779824d29309?w=400&h=400&fit=crop', alt: 'Healthcare Camp' },
+              { src: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=400&h=400&fit=crop', alt: 'Community Service' },
+              { src: 'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=400&h=400&fit=crop', alt: 'Clothing Distribution' },
+              { src: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=400&fit=crop', alt: 'Elderly Care' },
+              { src: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=400&h=400&fit=crop', alt: 'Cleanliness Drive' },
+              { src: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=400&h=400&fit=crop', alt: 'Volunteer Work' }
+            ].map((image, index) => (
               <motion.div
-                key={item}
+                key={index}
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: item * 0.05 }}
+                transition={{ duration: 0.5, delay: index * 0.05 }}
                 whileHover={{ scale: 1.05 }}
-                className={`aspect-square rounded-2xl overflow-hidden shadow-lg ${
-                  item % 2 === 0 ? 'bg-gradient-to-br from-primary-400 to-primary-600' : 'bg-gradient-to-br from-blue-400 to-blue-600'
-                } flex items-center justify-center`}
+                className="aspect-square rounded-2xl overflow-hidden shadow-lg"
               >
-                <Heart className="w-16 h-16 text-white/80" />
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  className="w-full h-full object-cover"
+                />
               </motion.div>
             ))}
           </div>
@@ -343,7 +421,7 @@ function App() {
       {/* Contact Section */}
       <section id="contact" className="section-padding bg-gradient-to-br from-primary-50 to-orange-50">
         <div className="container-custom">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -368,7 +446,7 @@ function App() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">Address</h3>
-                  <p className="text-gray-600">123 NGO Street, Community Center<br/>City, State - 123456</p>
+                  <p className="text-gray-600">123 NGO Street, Community Center<br />City, State - 123456</p>
                 </div>
               </div>
 
@@ -378,7 +456,7 @@ function App() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">Phone</h3>
-                  <p className="text-gray-600">+91 98765 43210<br/>+91 87654 32109</p>
+                  <p className="text-gray-600">+91 98765 43210<br />+91 87654 32109</p>
                 </div>
               </div>
 
@@ -388,7 +466,7 @@ function App() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">Email</h3>
-                  <p className="text-gray-600">contact@sevadeep.org<br/>info@sevadeep.org</p>
+                  <p className="text-gray-600">contact@sevadeep.org<br />info@sevadeep.org</p>
                 </div>
               </div>
 
@@ -417,31 +495,31 @@ function App() {
               <form className="space-y-6">
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">Full Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary-600 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
                     placeholder="Enter your name"
                   />
                 </div>
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">Email Address</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary-600 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
                     placeholder="Enter your email"
                   />
                 </div>
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">Phone Number</label>
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary-600 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
                     placeholder="Enter your phone number"
                   />
                 </div>
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">Message</label>
-                  <textarea 
+                  <textarea
                     rows="4"
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary-600 focus:ring-2 focus:ring-primary-200 outline-none transition-all resize-none"
                     placeholder="Tell us how you'd like to help"
@@ -468,7 +546,7 @@ function App() {
                 Spreading hope and kindness through community service and social welfare activities.
               </p>
             </div>
-            
+
             <div>
               <h4 className="text-lg font-bold mb-4">Quick Links</h4>
               <ul className="space-y-2">
@@ -509,7 +587,7 @@ function App() {
           </div>
 
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Sevadeep NGO. All rights reserved. Made with ❤️ for humanity.</p>
+            <p>&copy; 2024 Sevadeep NGO. All rights reserved. Committed to serving humanity.</p>
           </div>
         </div>
       </footer>

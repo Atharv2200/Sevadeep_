@@ -12,7 +12,9 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "lucide-react": "^0.344.0",
-    "framer-motion": "^11.0.0"
+    "framer-motion": "^11.0.0",
+    "qrcode.react": "^4.0.1",
+    "react-qr-reader": "^3.0.0-beta-1"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
