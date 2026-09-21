@@ -40,17 +40,19 @@ Routes stay thin. Services exist only where logic is multi-step, security-sensit
 - Status: `DRAFT | OPEN | CLOSED | CANCELLED`. Allowed transitions only: DRAFT->OPEN, DRAFT->CANCELLED, OPEN->CLOSED, OPEN->CANCELLED. CLOSED and CANCELLED are terminal; CLOSED is never reopened. Transitions are conditional updates. Admins change status via `PATCH /api/activities/:id/status`; `PATCH /api/activities/:id` edits content only. DRAFT and OPEN are editable; CLOSED/CANCELLED are locked.
 - Visibility: volunteers browse OPEN activities only (not yet ended). DRAFT is invisible to volunteers (404). CANCELLED is not in the volunteer list. Past activities reach volunteers through attendance/history.
 - The server computes `attendance {opensAt, closesAt, isOpen}`: `opensAt = startsAt - before`, `closesAt = endsAt + after`; open when status is OPEN and `opensAt <= now <= closesAt`. The frontend never computes windows.
-- Once any Attendance exists, `latitude`, `longitude` and `radiusMeters` are locked (enforced when Attendance exists, Phase 5).
+- Once any Attendance exists, `latitude`, `longitude` and `radiusMeters` are locked (`ACTIVITY_LOCATION_LOCKED`; re-sending the current values is fine). Race-safe without transactions: check-in sets `Activity.locationLocked` with a conditional update on the coordinates it measured against, before inserting; PATCH of a location field is conditional on `locationLocked` not being set.
 - Indexes: `{status, startsAt}`, `{startsAt}`.
 
 ## Attendance, QR and location (Phase 5 must follow)
 
 - Flow: admin shows the activity QR -> volunteer scans with the normal phone camera -> Sevadeep attendance URL (built from `PUBLIC_APP_URL`) -> login if needed, then return to the attendance page (`?next=`, validated against open redirects) -> browser location -> submit -> server validates identity, activity, window, QR token, accuracy, distance and duplicates -> records Attendance. The admin never scans volunteer QRs; there is no in-app scanner.
-- QR token: compact HMAC `bucket.hmac` (not a JWT), key = the activity's `qrSecret`, rotates every 60 s, current and previous 5-minute window accepted, timing-safe compare. The frontend refreshes using the server's `refreshInSeconds`. Regenerating `qrSecret` invalidates outstanding QRs.
+- QR token: compact HMAC `bucket.mac` (not a JWT), key = the activity's `qrSecret`, bucket = 60 s. A token is accepted while the current bucket is within 4 buckets of its own, so it works 4-5 minutes; timing-safe compare; `INVALID_QR` for forged/foreign/future tokens, `QR_EXPIRED` only for a genuine old one. `GET /api/activities/:id/qr` (admin) returns `{ url, expiresAt, refreshInSeconds }`, only for an OPEN activity inside its window, `no-store`; the URL is `PUBLIC_APP_URL/attend/:id?t=<token>`. The frontend only draws it (`qrcode.react`) and refreshes on `refreshInSeconds`. Regenerating `qrSecret` (service function only, no endpoint) invalidates outstanding QRs.
 - Location: the browser sends latitude, longitude, accuracy; the server computes `distanceMeters` (Haversine) and never trusts a client distance. Reject outside the radius and above `MAX_ACCURACY_METERS`; rejected attempts create no record. Store submitted coordinates, accuracy and distance.
-- Suspicious flags (LOW_ACCURACY, NEAR_BOUNDARY, EARLY, LATE) are informational and never reject a valid attendance.
+- Suspicious flags are informational, derived at read time (never stored), shown to admins only, and never reject a valid attendance: NEAR_BOUNDARY = distance > 80% of radius; LOW_ACCURACY = accuracy > 50% of `MAX_ACCURACY_METERS`; EARLY = checked in before `startsAt`; LATE = after `endsAt`. Volunteers never see coordinates, distance, accuracy or flags, and rejection messages carry no numbers.
 - One Attendance per activity + volunteer: unique compound index, not a frontend check. Simultaneous duplicates must yield one record (`ALREADY_CHECKED_IN`).
-- Check-out (`POST /api/activities/:id/attendance/check-out`): authenticated volunteer + valid location, no QR. Duration is derived, never client-submitted.
+- Check-out (`POST /api/activities/:id/attendance/check-out`): authenticated volunteer + valid location (same accuracy and radius rules as check-in), no QR. Allowed for OPEN or CLOSED (not CANCELLED) activities until the window's `closesAt`; a conditional update on `checkedOutAt: null` makes a second check-out `ALREADY_CHECKED_OUT`. Duration is derived, never client-submitted.
+- Check-in order: ACTIVE volunteer -> activity exists (DRAFT is 404) -> status OPEN (`ACTIVITY_CLOSED`/`ACTIVITY_CANCELLED`) -> window via `utils/attendanceWindow` (`ATTENDANCE_WINDOW_CLOSED`) -> QR token -> accuracy (`POOR_LOCATION_ACCURACY`, 422) -> distance (`OUT_OF_RADIUS`, 422) -> insert; the unique index answers `ALREADY_CHECKED_IN`. Rejected attempts store nothing. Attendance is rate-limited per signed-in user (not per IP: a venue shares one address).
+- History: `GET /api/attendance` is scoped by role (a volunteer only ever gets their own records); `GET /api/activities/:id/attendance` (admin) is the live list (max 200, `{ items, total }`). The admin screen polls every 10 s (`usePolling`: no overlapping requests, paused in a hidden tab).
 - Live attendance uses polling (up to 200 rows, no pagination). No WebSockets/SSE.
 
 ## Contribution architecture (Phase 6)
@@ -103,7 +105,7 @@ Routes stay thin. Services exist only where logic is multi-step, security-sensit
 2. Core data model and authentication (User, Volunteer, Counter, auth, admins, volunteers, seedAdmin, test harness) — done.
 3. Frontend routing, auth and layouts (public/volunteer/admin areas, admin volunteers/admins pages) — done.
 4. Activity system (model, CRUD, status transitions, attendance-window computation, volunteer and admin pages) — done.
-5. Secure attendance, QR and location (Attendance model, `qrTokenService`, `attendanceService`, `utils/geo`, check-in/out, live attendance, `/attend/:activityId`).
+5. Secure attendance, QR and location (Attendance model, `qrTokenService`, `attendanceService`, `utils/geo`, check-in/out, live attendance, `/attend/:activityId`) — done. Phone testing needs an HTTPS tunnel; the Vite dev/preview server's hosts are widened only through `VITE_ALLOWED_HOSTS` (never `*`).
 6. Contributions, photos, verification, approved hours, stats.
 7. Testing, security hardening, release (CI, production config, README, end-to-end run on real phones).
 
