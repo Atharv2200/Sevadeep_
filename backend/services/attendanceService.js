@@ -106,7 +106,9 @@ async function checkOut(user, activityId, input, { now = new Date() } = {}) {
   if (attendance.checkedOutAt) {
     throw new AppError(409, 'You have already checked out of this activity', { code: 'ALREADY_CHECKED_OUT' });
   }
-  if (activity.status === 'CANCELLED') assertNotClosed(activity);
+  if (activity.status === 'CANCELLED') {
+    throw new AppError(409, 'This activity has been cancelled', { code: 'ACTIVITY_CANCELLED' });
+  }
   if (now > attendanceWindow(activity, now).closesAt) {
     throw new AppError(409, 'The attendance window for this activity has ended', { code: 'ATTENDANCE_WINDOW_CLOSED' });
   }

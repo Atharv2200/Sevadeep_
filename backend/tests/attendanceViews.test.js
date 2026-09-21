@@ -376,6 +376,18 @@ describe('location lock', () => {
     assert.equal(codeOf(await admin.agent.patch(`/api/activities/${activity._id}`).send({ radiusMeters: 999 })), 'ACTIVITY_LOCATION_LOCKED');
   });
 
+  it('cannot be set or cleared through the API', async () => {
+    const { admin, activity } = await adminScene();
+    const created = await admin.agent.post('/api/activities').send(f.activityPayload({ locationLocked: true }));
+    assert.equal(created.status, 400);
+    assert.deepEqual(created.body.errors.map((e) => e.path), ['body.locationLocked']);
+
+    await attendee(activity);
+    const cleared = await admin.agent.patch(`/api/activities/${activity._id}`).send({ locationLocked: false });
+    assert.equal(cleared.status, 400);
+    assert.equal((await Activity.findById(activity._id)).locationLocked, true);
+  });
+
   it('exposes the lock to admins only', async () => {
     const { admin, activity } = await adminScene();
     const volunteer = await attendee(activity);
