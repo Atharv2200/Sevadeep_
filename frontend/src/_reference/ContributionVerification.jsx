@@ -1,3 +1,5 @@
+// DESIGN REFERENCE ONLY - not imported anywhere, contains mock data. Retired
+// when the real page it informs is built (attendance: Phase 5, contributions: Phase 6).
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {

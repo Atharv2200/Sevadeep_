@@ -1,3 +1,5 @@
+// DESIGN REFERENCE ONLY - not imported anywhere, contains mock data. Retired
+// when the real page it informs is built (attendance: Phase 5, contributions: Phase 6).
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { QrCode, CheckCircle, XCircle, Clock, User, Calendar, Home } from 'lucide-react';
