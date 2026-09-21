@@ -1,3 +1,6 @@
+const { TRANSITIONS } = require('../config/activity');
+const { attendanceWindow } = require('./attendanceWindow');
+
 // Explicit response shapes. Fields are listed one by one, so a column added to a
 // model later is never exposed to clients by accident.
 
@@ -35,4 +38,39 @@ function serializeVolunteerAccount(volunteer, user) {
   };
 }
 
-module.exports = { serializeVolunteer, serializeVolunteerAccount, serializeUser };
+// An activity as either audience sees it. `qrSecret` is never listed here. The
+// attendance window is computed by the server so clients never derive it.
+// Admins additionally get the creator, the per-activity window settings and the
+// status changes currently allowed (so the client does not copy the transition table).
+function serializeActivity(activity, { admin = false, now = new Date() } = {}) {
+  const view = {
+    id: String(activity._id),
+    title: activity.title,
+    description: activity.description,
+    category: activity.category,
+    status: activity.status,
+    startsAt: activity.startsAt,
+    endsAt: activity.endsAt,
+    locationName: activity.locationName,
+    address: activity.address,
+    latitude: activity.latitude,
+    longitude: activity.longitude,
+    radiusMeters: activity.radiusMeters,
+    instructions: activity.instructions,
+    attendance: attendanceWindow(activity, now),
+    createdAt: activity.createdAt,
+    updatedAt: activity.updatedAt,
+  };
+  if (!admin) return view;
+
+  const creator = activity.createdBy;
+  return {
+    ...view,
+    attendanceOpensMinutesBefore: activity.attendanceOpensMinutesBefore,
+    attendanceClosesMinutesAfter: activity.attendanceClosesMinutesAfter,
+    createdBy: creator?._id ? { id: String(creator._id), name: creator.name ?? null } : { id: String(creator), name: null },
+    allowedTransitions: TRANSITIONS[activity.status],
+  };
+}
+
+module.exports = { serializeActivity, serializeVolunteer, serializeVolunteerAccount, serializeUser };

@@ -5,6 +5,7 @@ const router = express.Router();
 router.use('/auth', require('./auth'));
 router.use('/admins', require('./admins'));
 router.use('/volunteers', require('./volunteers'));
+router.use('/activities', require('./activities'));
 
 // Public health check.
 router.get('/health', (req, res) => {

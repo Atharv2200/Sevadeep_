@@ -70,7 +70,44 @@ function tokenFrom(res) {
   return cookie ? cookie.split(';')[0].split('=')[1] : null;
 }
 
+const HOUR = 60 * 60 * 1000;
+
+// A valid create-activity body, starting in two days. Override any field.
+function activityPayload(overrides = {}) {
+  const start = Date.now() + 48 * HOUR;
+  return {
+    title: unique('Food drive '),
+    description: 'Serving hot meals to families in need.',
+    category: 'FOOD',
+    startsAt: new Date(start).toISOString(),
+    endsAt: new Date(start + 3 * HOUR).toISOString(),
+    locationName: 'Community hall',
+    address: '12 Temple Road',
+    latitude: 18.5204,
+    longitude: 73.8567,
+    radiusMeters: 100,
+    instructions: 'Bring your ID.',
+    ...overrides,
+  };
+}
+
+// Inserts an activity directly, bypassing the API, so any status or time can be set up.
+async function seedActivity(createdBy, overrides = {}) {
+  const { Activity } = require('../../models');
+  const payload = activityPayload(overrides);
+  return Activity.create({
+    ...payload,
+    startsAt: new Date(payload.startsAt),
+    endsAt: new Date(payload.endsAt),
+    createdBy,
+    ...overrides,
+  });
+}
+
 module.exports = {
+  HOUR,
+  activityPayload,
+  seedActivity,
   PASSWORD,
   User,
   client,
