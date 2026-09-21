@@ -102,7 +102,7 @@ Routes stay thin. Services exist only where logic is multi-step, security-sensit
 1. Repository cleanup and foundation — done.
 2. Core data model and authentication (User, Volunteer, Counter, auth, admins, volunteers, seedAdmin, test harness) — done.
 3. Frontend routing, auth and layouts (public/volunteer/admin areas, admin volunteers/admins pages) — done.
-4. Activity system (model, CRUD, status transitions, attendance-window computation, volunteer and admin pages) — in progress.
+4. Activity system (model, CRUD, status transitions, attendance-window computation, volunteer and admin pages) — done.
 5. Secure attendance, QR and location (Attendance model, `qrTokenService`, `attendanceService`, `utils/geo`, check-in/out, live attendance, `/attend/:activityId`).
 6. Contributions, photos, verification, approved hours, stats.
 7. Testing, security hardening, release (CI, production config, README, end-to-end run on real phones).
