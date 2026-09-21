@@ -137,3 +137,62 @@ describe('password utilities', () => {
     assert.equal(await verifyPassword('anything at all', undefined), false);
   });
 });
+
+describe('Activity', () => {
+  const { Activity } = require('../models');
+  const { DEFAULT_ATTENDANCE_MINUTES } = require('../config/activity');
+
+  const valid = (overrides = {}) => ({
+    title: 'Food drive',
+    description: 'Serving meals.',
+    category: 'FOOD',
+    startsAt: new Date('2026-10-04T09:00:00Z'),
+    endsAt: new Date('2026-10-04T12:00:00Z'),
+    locationName: 'Community hall',
+    latitude: 18.52,
+    longitude: 73.85,
+    radiusMeters: 100,
+    createdBy: new User()._id,
+    ...overrides,
+  });
+
+  it('applies the server defaults', async () => {
+    const activity = await Activity.create(valid());
+    assert.equal(activity.status, 'DRAFT');
+    assert.equal(activity.attendanceOpensMinutesBefore, DEFAULT_ATTENDANCE_MINUTES);
+    assert.equal(activity.attendanceClosesMinutesAfter, DEFAULT_ATTENDANCE_MINUTES);
+    assert.equal(activity.address, '');
+    assert.equal(activity.instructions, '');
+  });
+
+  it('generates a random 32-byte qrSecret that is never selected by default', async () => {
+    const [a, b] = await Promise.all([Activity.create(valid()), Activity.create(valid())]);
+    const found = await Activity.findById(a._id);
+    assert.equal(found.qrSecret, undefined);
+    const withSecret = await Activity.findById(a._id).select('+qrSecret');
+    assert.match(withSecret.qrSecret, /^[0-9a-f]{64}$/);
+    assert.notEqual(withSecret.qrSecret, (await Activity.findById(b._id).select('+qrSecret')).qrSecret);
+  });
+
+  it('rejects out-of-range or malformed values', async () => {
+    for (const bad of [
+      { latitude: 91 },
+      { longitude: -181 },
+      { radiusMeters: 10 },
+      { radiusMeters: 100.5 },
+      { category: 'PARTY' },
+      { status: 'DONE' },
+      { title: 'ab' },
+      { attendanceOpensMinutesBefore: -1 },
+      { createdBy: undefined },
+    ]) {
+      await assert.rejects(Activity.create(valid(bad)), { name: 'ValidationError' }, JSON.stringify(bad));
+    }
+  });
+
+  it('has the expected indexes after init', async () => {
+    const keys = (await Activity.collection.indexes()).map((index) => JSON.stringify(index.key));
+    assert.ok(keys.includes('{"status":1,"startsAt":1}'));
+    assert.ok(keys.includes('{"startsAt":-1}'));
+  });
+});

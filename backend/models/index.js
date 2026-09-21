@@ -4,4 +4,5 @@ module.exports = {
   Counter: require('./Counter'),
   User: require('./User'),
   Volunteer: require('./Volunteer'),
+  Activity: require('./Activity'),
 };
