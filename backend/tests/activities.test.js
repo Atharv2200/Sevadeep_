@@ -1,6 +1,8 @@
 const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 
+const request = require('supertest');
+
 const db = require('./helpers/db');
 const f = require('./helpers/factories');
 const { Activity } = require('../models');
@@ -485,15 +487,35 @@ describe('PATCH /api/activities/:id/status', () => {
     assert.equal((await agent.patch(`/api/activities/${seeded._id}/status`).send({ status: 'CANCELLED' })).status, 200);
   });
 
-  it('lets only one of two simultaneous conflicting changes win', async () => {
-    const { agent, user } = await admin();
+  it('never lets two simultaneous conflicting changes both succeed against the same state', async () => {
+    // OPEN and CANCELLED race from DRAFT. Whichever write lands first decides:
+    //  - CANCELLED first: it is terminal, so OPEN must be refused (409);
+    //  - OPEN first: CANCELLED is still a legal move from OPEN, so both may succeed, in that order.
+    // What can never happen is OPEN succeeding after CANCELLED, or a request that read DRAFT
+    // overwriting a change made in the meantime.
+    const { user, password } = await admin();
     const seeded = await f.seedActivity(user._id, { status: 'DRAFT' });
     const url = `/api/activities/${seeded._id}/status`;
-    const results = await Promise.all([agent.patch(url).send({ status: 'OPEN' }), agent.patch(url).send({ status: 'CANCELLED' })]);
-    const statuses = results.map((res) => res.status).sort();
-    assert.deepEqual(statuses, [200, 409]);
-    const winner = results.find((res) => res.status === 200).body.activity.status;
-    assert.equal((await Activity.findById(seeded._id)).status, winner);
+    const cookie = await f.loginCookie(user.email, password);
+
+    const [toOpen, toCancelled] = await f.withServer((server) =>
+      Promise.all([
+        request(server).patch(url).set('Cookie', cookie).send({ status: 'OPEN' }),
+        request(server).patch(url).set('Cookie', cookie).send({ status: 'CANCELLED' }),
+      ])
+    );
+
+    const final = (await Activity.findById(seeded._id)).status;
+    if (final === 'OPEN') {
+      assert.equal(toOpen.status, 200);
+      assert.equal(toCancelled.status, 409);
+      assert.equal(toCancelled.body.code, 'INVALID_STATUS_TRANSITION');
+    } else {
+      assert.equal(final, 'CANCELLED');
+      assert.equal(toCancelled.status, 200);
+      assert.ok([200, 409].includes(toOpen.status), `open answered ${toOpen.status}`);
+      if (toOpen.status === 409) assert.equal(toOpen.body.code, 'INVALID_STATUS_TRANSITION');
+    }
   });
 
   it('validates the body and the id', async () => {
