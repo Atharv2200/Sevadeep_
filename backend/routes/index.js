@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 
 router.use('/auth', require('./auth'));
+router.use('/admins', require('./admins'));
+router.use('/volunteers', require('./volunteers'));
 
 // Public health check.
 router.get('/health', (req, res) => {

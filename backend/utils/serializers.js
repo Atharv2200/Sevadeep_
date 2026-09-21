@@ -25,4 +25,14 @@ function serializeUser(user, volunteer = null) {
   };
 }
 
-module.exports = { serializeVolunteer, serializeUser };
+// A volunteer as an admin sees them: profile plus the account's email and status.
+function serializeVolunteerAccount(volunteer, user) {
+  return {
+    ...serializeVolunteer(volunteer),
+    email: user.email,
+    status: user.status,
+    lastLoginAt: user.lastLoginAt ?? null,
+  };
+}
+
+module.exports = { serializeVolunteer, serializeVolunteerAccount, serializeUser };
