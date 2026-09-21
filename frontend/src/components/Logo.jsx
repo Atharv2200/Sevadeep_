@@ -18,7 +18,7 @@ export default function Logo({ className = "w-10 h-10", showText = false, textCl
           
           <linearGradient id="sevadeepRedHand" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#c02128" />
-            <stop offset="100%" stop-color="#9e111a" />
+            <stop offset="100%" stopColor="#9e111a" />
           </linearGradient>
 
           <linearGradient id="sevadeepOrangeHand" x1="0%" y1="0%" x2="100%" y2="100%">
