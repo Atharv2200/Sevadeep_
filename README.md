@@ -64,6 +64,10 @@ backend/    Express + Mongoose API (entry point: backend/server.js)
    ```bash
    cd frontend
    npm install
-   npm run dev            # http://localhost:5173
+   npm run dev            # http://localhost:5173 (start the backend first)
+   npm test               # component and API-client tests (no backend needed)
    npm run build          # production build into frontend/dist
    ```
+   The app calls the API at the same origin (`/api`). In development Vite proxies `/api` to the backend on http://localhost:5000, so the login cookie stays first-party and no CORS is needed; set `API_PROXY_TARGET` if your backend runs elsewhere. Sign in as the admin you created with `npm run seed:admin`, or register a volunteer at `/register`.
+
+   Routes: `/` (public site), `/login`, `/register`, `/volunteer/*` (volunteer area), `/admin/*` (admin area), `/change-password`. Route guards only decide what to show; the API enforces access on every request.
