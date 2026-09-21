@@ -6,6 +6,7 @@ import AdminLayout from '../layouts/AdminLayout'
 import VolunteerLayout from '../layouts/VolunteerLayout'
 import AdminActivities from '../pages/admin/Activities'
 import AdminActivityDetail from '../pages/admin/ActivityDetail'
+import AdminLiveAttendance from '../pages/admin/LiveAttendance'
 import AdminActivityForm from '../pages/admin/ActivityForm'
 import AdminAdmins from '../pages/admin/Admins'
 import AdminOverview from '../pages/admin/Overview'
@@ -60,6 +61,7 @@ export default function AppRoutes() {
             <Route path="activities/new" element={<AdminActivityForm />} />
             <Route path="activities/:id" element={<AdminActivityDetail />} />
             <Route path="activities/:id/edit" element={<AdminActivityForm />} />
+            <Route path="activities/:id/attendance" element={<AdminLiveAttendance />} />
             <Route path="volunteers" element={<AdminVolunteers />} />
             <Route path="volunteers/:id" element={<AdminVolunteerDetail />} />
             <Route path="admins" element={<AdminAdmins />} />

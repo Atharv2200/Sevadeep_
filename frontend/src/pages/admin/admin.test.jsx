@@ -182,13 +182,15 @@ describe('Volunteers list', () => {
 })
 
 describe('Volunteer detail', () => {
+  const noAttendance = { 'GET /api/attendance': { body: { items: [], page: 1, limit: 10, total: 0 } } }
   const detail = (overrides = {}) => ({
     volunteer: row(1, { name: 'Asha Rao', ...overrides }),
     stats: { activitiesAttended: 4, verifiedActivities: 3, verifiedHours: 9.25 },
   })
 
   it('shows the volunteer and derived stats from the backend', async () => {
-    mockApi({ ...signedInAdmin, 'GET /api/volunteers/id1': { body: detail() } })
+    mockApi({ ...signedInAdmin,
+      ...noAttendance, 'GET /api/volunteers/id1': { body: detail() } })
     renderApp('/admin/volunteers/id1')
     expect(await screen.findByRole('heading', { name: 'Asha Rao' })).toBeInTheDocument()
     expect(screen.getByText('Volunteer ID: VOL-2026-0001')).toBeInTheDocument()
@@ -201,6 +203,7 @@ describe('Volunteer detail', () => {
     let status = 'ACTIVE'
     const mock = mockApi({
       ...signedInAdmin,
+      ...noAttendance,
       'GET /api/volunteers/id1': () => ({ body: detail({ status }) }),
       'PATCH /api/volunteers/id1/status': (req) => {
         status = req.body.status
@@ -219,7 +222,8 @@ describe('Volunteer detail', () => {
   })
 
   it('can cancel a suspension without calling the API', async () => {
-    const mock = mockApi({ ...signedInAdmin, 'GET /api/volunteers/id1': { body: detail() } })
+    const mock = mockApi({ ...signedInAdmin,
+      ...noAttendance, 'GET /api/volunteers/id1': { body: detail() } })
     renderApp('/admin/volunteers/id1')
     await userEvent.click(await screen.findByRole('button', { name: 'Suspend volunteer' }))
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -231,6 +235,7 @@ describe('Volunteer detail', () => {
     let status = 'SUSPENDED'
     const mock = mockApi({
       ...signedInAdmin,
+      ...noAttendance,
       'GET /api/volunteers/id1': () => ({ body: detail({ status }) }),
       'PATCH /api/volunteers/id1/status': (req) => {
         status = req.body.status
@@ -246,6 +251,7 @@ describe('Volunteer detail', () => {
   it('shows a failed status change without changing anything', async () => {
     mockApi({
       ...signedInAdmin,
+      ...noAttendance,
       'GET /api/volunteers/id1': { body: detail() },
       'PATCH /api/volunteers/id1/status': { status: 500, body: { message: 'Internal server error' } },
     })
@@ -256,7 +262,8 @@ describe('Volunteer detail', () => {
   })
 
   it('shows not-found without a pointless retry', async () => {
-    mockApi({ ...signedInAdmin, 'GET /api/volunteers/nope': { status: 404, body: { message: 'Volunteer not found', code: 'NOT_FOUND' } } })
+    mockApi({ ...signedInAdmin,
+      ...noAttendance, 'GET /api/volunteers/nope': { status: 404, body: { message: 'Volunteer not found', code: 'NOT_FOUND' } } })
     renderApp('/admin/volunteers/nope')
     expect(await screen.findByText('Volunteer not found')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument()

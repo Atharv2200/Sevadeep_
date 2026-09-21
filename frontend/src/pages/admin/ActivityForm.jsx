@@ -155,6 +155,7 @@ function Form({ activity, editing, back, onDone }) {
   const fieldError = (field) => localErrors[field] ?? error?.fieldError(field)
   const knownFields = Object.keys(EMPTY_FORM)
   const showAlert = error && !knownFields.some((field) => error.fieldError(field))
+  const locked = Boolean(activity?.locationLocked)
   const props = (field) => ({ value: form[field], onChange: update(field), error: fieldError(field) })
 
   return (
@@ -224,10 +225,15 @@ function Form({ activity, editing, back, onDone }) {
               <TextField label="Venue name" maxLength={ACTIVITY_LIMITS.locationName} required {...props('locationName')} />
               <TextField label="Address" maxLength={ACTIVITY_LIMITS.address} hint="Optional." {...props('address')} />
             </div>
+            {locked && (
+              <Alert tone="info" title="The location is locked">
+                Volunteers have already checked in, so the coordinates and radius can no longer change.
+              </Alert>
+            )}
             <div className="grid sm:grid-cols-3 gap-5">
-              <TextField label="Latitude" type="number" inputMode="decimal" step="any" required hint="For example 18.5204" {...props('latitude')} />
-              <TextField label="Longitude" type="number" inputMode="decimal" step="any" required hint="For example 73.8567" {...props('longitude')} />
-              <TextField label="Check-in radius (metres)" type="number" inputMode="numeric" step="1" required hint="25 to 5000" {...props('radiusMeters')} />
+              <TextField label="Latitude" type="number" inputMode="decimal" step="any" required disabled={locked} hint="For example 18.5204" {...props('latitude')} />
+              <TextField label="Longitude" type="number" inputMode="decimal" step="any" required disabled={locked} hint="For example 73.8567" {...props('longitude')} />
+              <TextField label="Check-in radius (metres)" type="number" inputMode="numeric" step="1" required disabled={locked} hint="25 to 5000" {...props('radiusMeters')} />
             </div>
             <p className="text-sm text-gray-500">Tip: in a maps app, press and hold the venue and copy the coordinates shown.</p>
           </div>

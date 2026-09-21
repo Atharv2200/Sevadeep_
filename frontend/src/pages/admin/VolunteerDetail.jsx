@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Award, Calendar, Clock } from 'lucide-react'
+import { attendanceApi } from '../../api/attendance'
 import { volunteersApi } from '../../api/volunteers'
-import { Alert, Button, Card, ErrorState, PageHeader, Spinner, StatusBadge } from '../../components/ui'
+import AttendanceTable from '../../components/activity/AttendanceTable'
+import { Alert, Button, Card, EmptyState, ErrorState, PageHeader, Spinner, StatusBadge } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
 import { formatDate, formatDateTime, formatHours } from '../../lib/format'
 
@@ -12,6 +14,40 @@ function Field({ label, children }) {
       <dt className="text-sm text-gray-500">{label}</dt>
       <dd className="font-medium text-gray-900 break-words">{children}</dd>
     </div>
+  )
+}
+
+const HISTORY_LIMIT = 10
+
+// The volunteer's most recent attendance, with the evidence an admin needs. It loads on
+// its own, so a problem here never hides the profile above it.
+function AttendanceHistory({ volunteerId }) {
+  const { data, error, loading, reload } = useAsync(
+    (signal) => attendanceApi.list({ volunteer: volunteerId, limit: HISTORY_LIMIT }, { signal }),
+    [volunteerId]
+  )
+
+  return (
+    <Card className="mt-8 !p-0 overflow-hidden">
+      <div className="p-4 border-b border-gray-100">
+        <h2 className="text-xl font-bold text-gray-900">Attendance history</h2>
+      </div>
+      {loading && !data && (
+        <div className="py-10 flex justify-center text-primary-600">
+          <Spinner className="w-6 h-6" label="Loading attendance…" />
+        </div>
+      )}
+      {error && <div className="p-4"><ErrorState error={error} onRetry={reload} /></div>}
+      {data && data.items.length === 0 && <EmptyState title="No attendance yet" description="Activities this volunteer checks in to appear here." />}
+      {data && data.items.length > 0 && (
+        <>
+          <AttendanceTable items={data.items} mode="volunteer" />
+          {data.total > data.items.length && (
+            <p className="p-4 text-sm text-gray-600 border-t border-gray-100">Showing the latest {data.items.length} of {data.total}.</p>
+          )}
+        </>
+      )}
+    </Card>
   )
 }
 
@@ -125,6 +161,8 @@ export default function VolunteerDetail() {
           </Card>
         ))}
       </div>
+
+      <AttendanceHistory volunteerId={id} />
     </>
   )
 }

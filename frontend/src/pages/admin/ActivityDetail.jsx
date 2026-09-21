@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowLeft, Pencil, UserCheck } from 'lucide-react'
 import { activitiesApi } from '../../api/activities'
 import ActivityFacts from '../../components/activity/ActivityFacts'
 import CategoryIcon from '../../components/activity/CategoryIcon'
@@ -128,6 +128,7 @@ export default function ActivityDetail() {
             <dl className="grid sm:grid-cols-2 gap-6">
               <Field label="Coordinates">{activity.latitude}, {activity.longitude}</Field>
               <Field label="Check-in radius">{activity.radiusMeters} m</Field>
+              <Field label="Location">{activity.locationLocked ? 'Locked: volunteers have already checked in' : 'Can still be changed'}</Field>
               <Field label="Attendance opens">{activity.attendanceOpensMinutesBefore} min before the start</Field>
               <Field label="Attendance closes">{activity.attendanceClosesMinutesAfter} min after the end</Field>
               <Field label="Created by">{activity.createdBy.name ?? 'Unknown'}</Field>
@@ -136,42 +137,63 @@ export default function ActivityDetail() {
           </Card>
         </div>
 
-        <Card className="self-start">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-bold text-gray-900">Status</h2>
-            <StatusBadge status={activity.status} />
-          </div>
-          <p className="text-sm text-gray-600 mb-4">{STATUS_HELP[activity.status]}</p>
-          {actionError && <Alert tone="error" className="mb-4">{actionError.message}</Alert>}
+        <div className="self-start space-y-6">
+          <Card>
+            <h2 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-primary-600" aria-hidden="true" />
+              Attendance
+            </h2>
+            {activity.status === 'DRAFT' ? (
+              <p className="text-sm text-gray-600">Open the activity to start taking attendance.</p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600 mb-4">
+                  {activity.status === 'OPEN' ? 'Show the QR code and watch volunteers check in.' : 'See who attended.'}
+                </p>
+                <Button as={Link} to={`/admin/activities/${activity.id}/attendance`} className="w-full">
+                  {activity.status === 'OPEN' ? 'Open attendance screen' : 'View attendance'}
+                </Button>
+              </>
+            )}
+          </Card>
 
-          {activity.allowedTransitions.length > 0 && (
-            <div className="space-y-3">
-              {confirming ? (
-                <>
-                  <p className="text-sm font-medium text-gray-900">{ACTIONS[confirming].confirm}</p>
-                  <div className="flex gap-2">
-                    <Button variant={ACTIONS[confirming].variant === 'secondary' ? 'primary' : ACTIONS[confirming].variant} loading={changing} onClick={() => changeStatus(confirming)}>
-                      Yes, {ACTIONS[confirming].label.toLowerCase()}
-                    </Button>
-                    <Button variant="ghost" disabled={changing} onClick={() => setConfirming(null)}>Keep as is</Button>
-                  </div>
-                </>
-              ) : (
-                activity.allowedTransitions.map((status) => (
-                  <Button
-                    key={status}
-                    variant={ACTIONS[status].variant}
-                    className="w-full"
-                    loading={changing && !ACTIONS[status].confirm}
-                    onClick={() => (ACTIONS[status].confirm ? setConfirming(status) : changeStatus(status))}
-                  >
-                    {ACTIONS[status].label}
-                  </Button>
-                ))
-              )}
+          <Card>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-bold text-gray-900">Status</h2>
+              <StatusBadge status={activity.status} />
             </div>
-          )}
-        </Card>
+            <p className="text-sm text-gray-600 mb-4">{STATUS_HELP[activity.status]}</p>
+            {actionError && <Alert tone="error" className="mb-4">{actionError.message}</Alert>}
+
+            {activity.allowedTransitions.length > 0 && (
+              <div className="space-y-3">
+                {confirming ? (
+                  <>
+                    <p className="text-sm font-medium text-gray-900">{ACTIONS[confirming].confirm}</p>
+                    <div className="flex gap-2">
+                      <Button variant={ACTIONS[confirming].variant === 'secondary' ? 'primary' : ACTIONS[confirming].variant} loading={changing} onClick={() => changeStatus(confirming)}>
+                        Yes, {ACTIONS[confirming].label.toLowerCase()}
+                      </Button>
+                      <Button variant="ghost" disabled={changing} onClick={() => setConfirming(null)}>Keep as is</Button>
+                    </div>
+                  </>
+                ) : (
+                  activity.allowedTransitions.map((status) => (
+                    <Button
+                      key={status}
+                      variant={ACTIONS[status].variant}
+                      className="w-full"
+                      loading={changing && !ACTIONS[status].confirm}
+                      onClick={() => (ACTIONS[status].confirm ? setConfirming(status) : changeStatus(status))}
+                    >
+                      {ACTIONS[status].label}
+                    </Button>
+                  ))
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
       </div>
     </>
   )
