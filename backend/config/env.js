@@ -67,6 +67,17 @@ function parseTrustProxy(value) {
   return fail('Invalid TRUST_PROXY: use true, false, or a number of proxy hops.');
 }
 
+// Largest reported GPS accuracy (metres) a check-in may have. A worse fix says too
+// little about where the volunteer is, so it is rejected.
+const DEFAULT_MAX_ACCURACY_METERS = 100;
+const maxAccuracyMeters =
+  process.env.MAX_ACCURACY_METERS === undefined || process.env.MAX_ACCURACY_METERS.trim() === ''
+    ? DEFAULT_MAX_ACCURACY_METERS
+    : Number(process.env.MAX_ACCURACY_METERS);
+if (!Number.isFinite(maxAccuracyMeters) || maxAccuracyMeters <= 0 || maxAccuracyMeters > 1000) {
+  fail('Invalid MAX_ACCURACY_METERS: it must be a number greater than 0 and at most 1000.');
+}
+
 // Tests must never touch the development database.
 const DEFAULT_TEST_URI = 'mongodb://localhost:27017/sevadeep-ngo-test';
 const mongoUri = isTest
@@ -89,6 +100,7 @@ module.exports = {
   jwtSecret,
   publicAppUrl: publicAppUrl.origin,
   allowedOrigins,
+  maxAccuracyMeters,
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
   // bcrypt work factor. Low in tests only, to keep the suite fast.
   bcryptRounds: isTest ? 4 : 12,

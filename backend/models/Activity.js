@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { STATUSES, CATEGORIES, DEFAULT_ATTENDANCE_MINUTES, LIMITS } = require('../config/activity');
 
+const generateQrSecret = () => crypto.randomBytes(32).toString('hex');
+
 // A volunteering event. Everything except the admin-editable content (status,
 // createdBy, qrSecret, timestamps) is set by the server. The attendance window
 // (opens/closes) is derived from these fields, never stored.
@@ -43,7 +45,7 @@ const activitySchema = new mongoose.Schema(
     qrSecret: {
       type: String,
       select: false,
-      default: () => crypto.randomBytes(32).toString('hex'),
+      default: generateQrSecret,
     },
   },
   { timestamps: true }
@@ -52,4 +54,7 @@ const activitySchema = new mongoose.Schema(
 activitySchema.index({ status: 1, startsAt: 1 });
 activitySchema.index({ startsAt: -1 });
 
-module.exports = mongoose.model('Activity', activitySchema);
+const Activity = mongoose.model('Activity', activitySchema);
+Activity.generateQrSecret = generateQrSecret;
+
+module.exports = Activity;
