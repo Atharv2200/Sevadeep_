@@ -51,9 +51,14 @@ backend/    Express + Mongoose API (entry point: backend/server.js)
    cd backend
    npm install
    cp .env.example .env   # then set MONGODB_URI and JWT_SECRET (both required)
+   npm run seed:admin     # one-time: create the first admin (asks for name, email, password)
    npm run dev            # or: npm start
    ```
-   The API runs on http://localhost:5000 (`GET /api/health`). The server exits with a clear message if a required variable is missing or MongoDB cannot be reached. Run the API tests with `npm test` (they use the separate `sevadeep-ngo-test` database).
+   The API runs on http://localhost:5000 (`GET /api/health`). The server exits with a clear message if a required variable is missing or MongoDB cannot be reached. Generate a `JWT_SECRET` with `openssl rand -hex 32`.
+
+   - **Accounts:** volunteers register themselves (`POST /api/auth/register`); admins cannot. The first admin comes from `npm run seed:admin` (safe to re-run: it does nothing once an admin exists), and existing admins create further admins (`POST /api/admins`).
+   - **Login** sets an `httpOnly` cookie, so the API is meant to be called same-origin (the frontend dev server will proxy `/api`). There is no CORS.
+   - **Tests:** `npm test`. They need a running MongoDB and use a separate `sevadeep-ngo-test` database (override with `MONGODB_URI_TEST`; the name must end in `-test`, and the tests refuse to run otherwise). Your development database is never touched.
 
 3. **Frontend**
    ```bash
