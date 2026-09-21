@@ -61,6 +61,19 @@ async function loggedInAdmin(options) {
   return { agent: await loginAs(user.email, password), user, password };
 }
 
+// Runs `fn(server)` against one real listening server. Use it for tests that fire many
+// requests at once: supertest opens a server per request otherwise, and a burst of
+// them resets connections.
+async function withServer(fn) {
+  const server = require('http').createServer(app);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    return await fn(server);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
 function cookieHeader(res) {
   return (res.headers['set-cookie'] || []).find((cookie) => cookie.startsWith('sevadeep_token=')) || null;
 }
@@ -104,8 +117,46 @@ async function seedActivity(createdBy, overrides = {}) {
   });
 }
 
+const MINUTE = 60 * 1000;
+// Metres per degree of latitude on the sphere utils/geo.js uses (R * pi / 180). Moving
+// due north by n metres is therefore an exact offset of n / METERS_PER_DEGREE degrees.
+const METERS_PER_DEGREE = (6371000 * Math.PI) / 180;
+
+// An OPEN activity whose attendance window is open now (started ten minutes ago).
+function openActivity(createdBy, overrides = {}) {
+  return seedActivity(createdBy, {
+    status: 'OPEN',
+    startsAt: new Date(Date.now() - 10 * MINUTE),
+    endsAt: new Date(Date.now() + 2 * HOUR),
+    ...overrides,
+  });
+}
+
+// A valid QR token for the activity, made with its stored secret (as the QR endpoint would).
+async function qrToken(activityId, now = new Date()) {
+  const { Activity } = require('../../models');
+  const { createToken } = require('../../services/qrTokenService');
+  return createToken(await Activity.findById(activityId).select('+qrSecret'), now);
+}
+
+// A position `meters` due north of the activity's venue.
+function pointAt(activity, meters = 0) {
+  return { latitude: activity.latitude + meters / METERS_PER_DEGREE, longitude: activity.longitude };
+}
+
+// A valid check-in body for the activity: at the venue, good accuracy, current token.
+async function checkInBody(activity, overrides = {}) {
+  return { token: await qrToken(activity._id), ...pointAt(activity, 0), accuracy: 10, ...overrides };
+}
+
 module.exports = {
   HOUR,
+  MINUTE,
+  METERS_PER_DEGREE,
+  openActivity,
+  qrToken,
+  pointAt,
+  checkInBody,
   activityPayload,
   seedActivity,
   PASSWORD,
@@ -116,6 +167,7 @@ module.exports = {
   createAdmin,
   loginAs,
   loginCookie,
+  withServer,
   loggedInAdmin,
   cookieHeader,
   tokenFrom,

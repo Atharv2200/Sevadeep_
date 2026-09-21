@@ -51,6 +51,14 @@ function buildLimiters(enabled) {
       skipSuccessfulRequests: true,
       enabled,
     }),
+    // Check-in and check-out attempts, per signed-in user (not per IP: a whole event
+    // shares one venue or carrier address). Runs after authenticate().
+    attendance: createLimiter({
+      windowMs: 10 * MINUTE,
+      limit: 20,
+      keyGenerator: (req) => String(req.user.id),
+      enabled,
+    }),
   };
 }
 

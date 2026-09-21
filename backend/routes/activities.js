@@ -10,6 +10,9 @@ const router = express.Router();
 
 router.use(authenticate);
 
+// Check-in and check-out.
+router.use('/:id/attendance', require('./activityAttendance'));
+
 // Volunteers cannot filter by status (they only ever see OPEN activities), so the
 // accepted query depends on the caller's role.
 const validateList = (req, res, next) =>

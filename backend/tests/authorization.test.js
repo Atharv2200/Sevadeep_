@@ -33,13 +33,22 @@ const MATRIX = [
   ['POST /api/activities', ['ADMIN']],
   ['PATCH /api/activities/:id', ['ADMIN']],
   ['PATCH /api/activities/:id/status', ['ADMIN']],
+  ['POST /api/activities/:id/attendance', ['VOLUNTEER']],
+  ['POST /api/activities/:id/attendance/check-out', ['VOLUNTEER']],
 ];
 
 // Lists every route registered on the Express app as "METHOD /full/path".
 function registeredRoutes() {
   const found = [];
-  const mountPath = (layer) =>
-    layer.regexp.source.replace('\\/?(?=\\/|$)', '').replace(/^\^/, '').replace(/\\\//g, '/');
+  // Turns a router's mount regexp back into its path, restoring ":param" segments.
+  const mountPath = (layer) => {
+    let keyIndex = 0;
+    return layer.regexp.source
+      .replace('\\/?(?=\\/|$)', '')
+      .replace(/^\^/, '')
+      .replace(/\(\?:\\\/\(\[\^\/\]\+\?\)\)/g, () => `/:${layer.keys[keyIndex++].name}`)
+      .replace(/\\\//g, '/');
+  };
   const walk = (stack, prefix) => {
     for (const layer of stack) {
       if (layer.route) {

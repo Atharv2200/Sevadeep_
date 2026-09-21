@@ -5,4 +5,5 @@ module.exports = {
   User: require('./User'),
   Volunteer: require('./Volunteer'),
   Activity: require('./Activity'),
+  Attendance: require('./Attendance'),
 };

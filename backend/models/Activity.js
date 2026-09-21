@@ -40,6 +40,10 @@ const activitySchema = new mongoose.Schema(
       max: LIMITS.attendanceMinutes.max,
     },
     status: { type: String, enum: STATUSES, default: 'DRAFT' },
+    // Set by the server just before the first attendance is recorded. It fences
+    // latitude, longitude and radiusMeters against a check-in that is measuring
+    // distance while an edit changes them (there are no transactions in v1).
+    locationLocked: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     // Signs attendance QR tokens (a later phase). Never selected by default and never serialized.
     qrSecret: {
