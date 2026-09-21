@@ -43,6 +43,27 @@ describe('volunteer routes and guards', () => {
     expect(mock.callsTo('POST /api/auth/logout')).toHaveLength(1)
   })
 
+  it('goes straight home on sign out instead of bouncing through the sign-in page', async () => {
+    let release
+    const gate = new Promise((resolve) => { release = resolve })
+    mockApi({
+      ...signedIn,
+      'GET /api/volunteers/me': { body: { volunteer: profile, stats } },
+      'POST /api/auth/logout': async () => {
+        await gate
+        return { status: 204 }
+      },
+    })
+    renderApp('/volunteer')
+    await userEvent.click(await screen.findByRole('button', { name: /sign out/i }))
+
+    // The logout request is still in flight: we must already be on the home page.
+    await waitFor(() => expect(location()).toBe('/'))
+    release()
+    await waitFor(() => expect(within(screen.getByRole('navigation')).getByRole('link', { name: /sign in/i })).toBeInTheDocument())
+    expect(location()).toBe('/')
+  })
+
   it('shows a not-found page inside the shell for unknown volunteer routes', async () => {
     mockApi(signedIn)
     renderApp('/volunteer/nope')

@@ -26,8 +26,8 @@ function AccountLinks({ mobile, onNavigate }) {
 
   const signOut = async () => {
     onNavigate()
-    await logout()
     navigate('/')
+    await logout()
   }
 
   if (status === 'loading') return null

@@ -14,9 +14,11 @@ export default function AppShell({ area, navItems }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
+  // Leave the signed-in area first. Signing out flips the auth state, and while this
+  // page is still mounted RequireAuth would answer that by redirecting to sign-in.
   const signOut = async () => {
-    await logout()
     navigate('/')
+    await logout()
   }
 
   return (
