@@ -2,7 +2,12 @@ import { Route, Routes } from 'react-router-dom'
 import RequireAuth from '../auth/RequireAuth'
 import RequireRole from '../auth/RequireRole'
 import { ROLES } from '../lib/constants'
+import AdminLayout from '../layouts/AdminLayout'
 import VolunteerLayout from '../layouts/VolunteerLayout'
+import AdminAdmins from '../pages/admin/Admins'
+import AdminOverview from '../pages/admin/Overview'
+import AdminVolunteerDetail from '../pages/admin/VolunteerDetail'
+import AdminVolunteers from '../pages/admin/Volunteers'
 import VolunteerDashboard from '../pages/volunteer/Dashboard'
 import VolunteerProfile from '../pages/volunteer/Profile'
 import PublicLayout from '../layouts/PublicLayout'
@@ -30,6 +35,16 @@ export default function AppRoutes() {
           <Route path="volunteer" element={<VolunteerLayout />}>
             <Route index element={<VolunteerDashboard />} />
             <Route path="profile" element={<VolunteerProfile />} />
+            <Route path="*" element={<NotFound compact />} />
+          </Route>
+        </Route>
+
+        <Route element={<RequireRole role={ROLES.ADMIN} />}>
+          <Route path="admin" element={<AdminLayout />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="volunteers" element={<AdminVolunteers />} />
+            <Route path="volunteers/:id" element={<AdminVolunteerDetail />} />
+            <Route path="admins" element={<AdminAdmins />} />
             <Route path="*" element={<NotFound compact />} />
           </Route>
         </Route>
