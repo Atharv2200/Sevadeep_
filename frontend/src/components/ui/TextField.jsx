@@ -16,6 +16,17 @@ export const Input = forwardRef(function Input({ invalid = false, className = ''
   )
 })
 
+export const Textarea = forwardRef(function Textarea({ invalid = false, className = '', ...props }, ref) {
+  return (
+    <textarea
+      ref={ref}
+      aria-invalid={invalid || undefined}
+      className={`${INPUT_CLASSES} ${invalid ? INVALID : VALID} ${className}`}
+      {...props}
+    />
+  )
+})
+
 export function Select({ className = '', children, ...props }) {
   return (
     <select className={`${INPUT_CLASSES} ${VALID} ${className}`} {...props}>
@@ -24,10 +35,11 @@ export function Select({ className = '', children, ...props }) {
   )
 }
 
-// A labelled input with its hint and error wired up for screen readers.
-export const TextField = forwardRef(function TextField({ label, error, hint, id, className = '', ...inputProps }, ref) {
+// A labelled input (or textarea, with `multiline`) with its hint and error wired up for screen readers.
+export const TextField = forwardRef(function TextField({ label, error, hint, id, multiline = false, className = '', ...inputProps }, ref) {
   const generatedId = useId()
   const inputId = id ?? generatedId
+  const Control = multiline ? Textarea : Input
   const describedBy = [error && `${inputId}-error`, hint && `${inputId}-hint`].filter(Boolean).join(' ')
 
   return (
@@ -35,7 +47,7 @@ export const TextField = forwardRef(function TextField({ label, error, hint, id,
       <label htmlFor={inputId} className="block text-gray-700 font-medium mb-2">
         {label}
       </label>
-      <Input ref={ref} id={inputId} invalid={Boolean(error)} aria-describedby={describedBy || undefined} {...inputProps} />
+      <Control ref={ref} id={inputId} invalid={Boolean(error)} aria-describedby={describedBy || undefined} {...inputProps} />
       {hint && !error && (
         <p id={`${inputId}-hint`} className="mt-1 text-sm text-gray-500">
           {hint}

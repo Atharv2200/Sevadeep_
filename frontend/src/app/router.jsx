@@ -4,6 +4,9 @@ import RequireRole from '../auth/RequireRole'
 import { ROLES } from '../lib/constants'
 import AdminLayout from '../layouts/AdminLayout'
 import VolunteerLayout from '../layouts/VolunteerLayout'
+import AdminActivities from '../pages/admin/Activities'
+import AdminActivityDetail from '../pages/admin/ActivityDetail'
+import AdminActivityForm from '../pages/admin/ActivityForm'
 import AdminAdmins from '../pages/admin/Admins'
 import AdminOverview from '../pages/admin/Overview'
 import AdminVolunteerDetail from '../pages/admin/VolunteerDetail'
@@ -46,6 +49,10 @@ export default function AppRoutes() {
         <Route element={<RequireRole role={ROLES.ADMIN} />}>
           <Route path="admin" element={<AdminLayout />}>
             <Route index element={<AdminOverview />} />
+            <Route path="activities" element={<AdminActivities />} />
+            <Route path="activities/new" element={<AdminActivityForm />} />
+            <Route path="activities/:id" element={<AdminActivityDetail />} />
+            <Route path="activities/:id/edit" element={<AdminActivityForm />} />
             <Route path="volunteers" element={<AdminVolunteers />} />
             <Route path="volunteers/:id" element={<AdminVolunteerDetail />} />
             <Route path="admins" element={<AdminAdmins />} />

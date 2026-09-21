@@ -40,3 +40,7 @@ export const ACTIVITY_LIMITS = {
   address: 300,
   instructions: 2000,
 }
+
+// Activities that can still be edited. Mirrors the API, which enforces it; used to
+// hide the Edit action on closed and cancelled activities.
+export const EDITABLE_ACTIVITY_STATUSES = ['DRAFT', 'OPEN']
