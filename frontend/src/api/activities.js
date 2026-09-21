@@ -15,4 +15,8 @@ export const activitiesApi = {
   update: (id, changes) => api.patch(`/activities/${encodeURIComponent(id)}`, changes).then((r) => r.activity),
   // Admin only. Moves along the server's transition table.
   setStatus: (id, status) => api.patch(`/activities/${encodeURIComponent(id)}/status`, { status }).then((r) => r.activity),
+
+  // Admin only: the QR for the attendance screen -> { url, expiresAt, refreshInSeconds }.
+  // The server builds and signs the URL; the client only displays it.
+  getQr: (id, options) => api.get(`/activities/${encodeURIComponent(id)}/qr`, options),
 }
