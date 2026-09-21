@@ -11,6 +11,8 @@ import AdminAdmins from '../pages/admin/Admins'
 import AdminOverview from '../pages/admin/Overview'
 import AdminVolunteerDetail from '../pages/admin/VolunteerDetail'
 import AdminVolunteers from '../pages/admin/Volunteers'
+import VolunteerAttend from '../pages/volunteer/Attend'
+import VolunteerHistory from '../pages/volunteer/History'
 import VolunteerActivities from '../pages/volunteer/Activities'
 import VolunteerActivityDetail from '../pages/volunteer/ActivityDetail'
 import VolunteerDashboard from '../pages/volunteer/Dashboard'
@@ -41,8 +43,13 @@ export default function AppRoutes() {
             <Route index element={<VolunteerDashboard />} />
             <Route path="activities" element={<VolunteerActivities />} />
             <Route path="activities/:id" element={<VolunteerActivityDetail />} />
+            <Route path="history" element={<VolunteerHistory />} />
             <Route path="profile" element={<VolunteerProfile />} />
             <Route path="*" element={<NotFound compact />} />
+          </Route>
+          {/* Where the attendance QR lands. Not under /volunteer so the link stays short. */}
+          <Route element={<VolunteerLayout />}>
+            <Route path="attend/:activityId" element={<VolunteerAttend />} />
           </Route>
         </Route>
 

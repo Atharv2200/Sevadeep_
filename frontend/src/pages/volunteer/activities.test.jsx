@@ -157,11 +157,12 @@ describe('volunteer Activity detail page', () => {
     expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
   })
 
-  it('offers no attendance action yet', async () => {
+  it('links to the attendance page but has no check-in control of its own', async () => {
     open({ attendance: { opensAt: '2020-01-01T00:00:00Z', closesAt: '2099-01-01T00:00:00Z', isOpen: true } })
     renderApp('/volunteer/activities/act1')
     await screen.findByText('Attendance is open now')
     const main = within(screen.getByRole('main'))
+    expect(main.getByRole('link', { name: /open attendance/i })).toHaveAttribute('href', '/attend/act1')
     expect(main.queryByRole('button')).not.toBeInTheDocument()
   })
 })

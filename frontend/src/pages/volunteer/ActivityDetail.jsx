@@ -62,6 +62,16 @@ export default function ActivityDetail() {
           <ActivityFacts activity={activity} />
         </Card>
 
+        {activity.status !== 'CANCELLED' && (
+          <Card className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Your attendance</h2>
+              <p className="text-gray-600 text-sm">Check in by scanning the QR code at the venue. Already there? Check in or out from here.</p>
+            </div>
+            <Button as={Link} to={`/attend/${activity.id}`} variant="secondary">Open attendance</Button>
+          </Card>
+        )}
+
         <Card>
           <h2 className="text-xl font-bold text-gray-900 mb-3">About this activity</h2>
           <p className="text-gray-700 whitespace-pre-line break-words">{activity.description}</p>

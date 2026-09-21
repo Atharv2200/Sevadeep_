@@ -33,3 +33,37 @@ export function adminActivity(n = 1, overrides = {}) {
 }
 
 export const listBody = (items, total = items.length, page = 1, limit = 12) => ({ body: { items, page, limit, total } })
+
+// An attendance record as a volunteer sees it: times and duration, nothing about position.
+export function attendanceRecord(n = 1, overrides = {}) {
+  return {
+    id: `att${n}`,
+    checkedInAt: '2031-05-01T09:05:00.000Z',
+    checkedOutAt: null,
+    durationMinutes: null,
+    activity: {
+      id: `act${n}`,
+      title: `Activity ${n}`,
+      category: 'FOOD',
+      locationName: `Venue ${n}`,
+      startsAt: '2031-05-01T09:00:00.000Z',
+      endsAt: '2031-05-01T12:00:00.000Z',
+      status: 'OPEN',
+    },
+    ...overrides,
+  }
+}
+
+// An attendance record as an admin sees it: who, evidence and flags.
+export function adminAttendance(n = 1, overrides = {}) {
+  return {
+    ...attendanceRecord(n),
+    volunteer: { id: `vol${n}`, volunteerId: `VOL-2031-000${n}`, name: `Volunteer ${n}` },
+    checkIn: { latitude: 18.52, longitude: 73.85, accuracy: 12, distanceMeters: 34.5 },
+    checkOut: null,
+    flags: [],
+    ...overrides,
+  }
+}
+
+export const emptyPage = { body: { items: [], page: 1, limit: 1, total: 0 } }
