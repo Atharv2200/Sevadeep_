@@ -14,3 +14,32 @@ export function formatDateTime(iso) {
 export function formatHours(hours) {
   return `${Number(hours.toFixed(2))}h`
 }
+
+const weekdayDateFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
+
+// "Sat, 4 Oct 2026, 9:00 AM – 12:00 PM", or both full date-times when it spans days.
+export function formatActivityTime(startsAt, endsAt) {
+  const start = new Date(startsAt)
+  const end = new Date(endsAt)
+  if (start.toDateString() === end.toDateString()) {
+    return `${weekdayDateFormat.format(start)}, ${timeFormat.format(start)} – ${timeFormat.format(end)}`
+  }
+  return `${dateTimeFormat.format(start)} – ${dateTimeFormat.format(end)}`
+}
+
+const pad = (n) => String(n).padStart(2, '0')
+
+// <input type="datetime-local"> works in the viewer's local time without a zone;
+// the API takes UTC ISO strings. These two convert between them.
+export function toLocalInput(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+export function fromLocalInput(value) {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
