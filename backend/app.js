@@ -11,12 +11,6 @@ app.disable('x-powered-by');
 app.use(cors({ origin: corsOrigins }));
 app.use(express.json());
 
-// Routes
-app.use('/api/volunteers', require('./routes/volunteers'));
-app.use('/api/attendance', require('./routes/attendance'));
-app.use('/api/contributions', require('./routes/contributions'));
-app.use('/api/verification', require('./routes/verification'));
-
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Sevadeep NGO API is running' });
