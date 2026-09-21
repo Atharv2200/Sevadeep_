@@ -3,7 +3,7 @@ const router = express.Router();
 const Contribution = require('../models/Contribution');
 
 // Get all contributions
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const { status, volunteerId } = req.query;
     let query = {};
@@ -13,12 +13,12 @@ router.get('/', async (req, res) => {
     const contributions = await Contribution.find(query).sort({ submittedDate: -1 });
     res.json(contributions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
 // Get single contribution by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const contribution = await Contribution.findById(req.params.id);
     if (!contribution) {
@@ -26,12 +26,12 @@ router.get('/:id', async (req, res) => {
     }
     res.json(contribution);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
 // Create new contribution
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
   try {
     const contribution = new Contribution({
       ...req.body,
@@ -40,12 +40,12 @@ router.post('/', async (req, res) => {
     const savedContribution = await contribution.save();
     res.status(201).json(savedContribution);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 });
 
 // Update contribution
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req, res, next) => {
   try {
     const contribution = await Contribution.findByIdAndUpdate(
       req.params.id,
@@ -57,12 +57,12 @@ router.put('/:id', async (req, res) => {
     }
     res.json(contribution);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 });
 
 // Delete contribution
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res, next) => {
   try {
     const contribution = await Contribution.findByIdAndDelete(req.params.id);
     if (!contribution) {
@@ -70,7 +70,7 @@ router.delete('/:id', async (req, res) => {
     }
     res.json({ message: 'Contribution deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 

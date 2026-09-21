@@ -3,17 +3,17 @@ const router = express.Router();
 const Volunteer = require('../models/Volunteer');
 
 // Get all volunteers
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const volunteers = await Volunteer.find();
     res.json(volunteers);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
 // Get single volunteer by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const volunteer = await Volunteer.findOne({ volunteerId: req.params.id });
     if (!volunteer) {
@@ -21,23 +21,23 @@ router.get('/:id', async (req, res) => {
     }
     res.json(volunteer);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
 // Create new volunteer
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
   try {
     const volunteer = new Volunteer(req.body);
     const savedVolunteer = await volunteer.save();
     res.status(201).json(savedVolunteer);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 });
 
 // Update volunteer
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req, res, next) => {
   try {
     const volunteer = await Volunteer.findOneAndUpdate(
       { volunteerId: req.params.id },
@@ -49,12 +49,12 @@ router.put('/:id', async (req, res) => {
     }
     res.json(volunteer);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 });
 
 // Delete volunteer
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res, next) => {
   try {
     const volunteer = await Volunteer.findOneAndDelete({ volunteerId: req.params.id });
     if (!volunteer) {
@@ -62,7 +62,7 @@ router.delete('/:id', async (req, res) => {
     }
     res.json({ message: 'Volunteer deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 

@@ -3,37 +3,37 @@ const router = express.Router();
 const Contribution = require('../models/Contribution');
 
 // Get all pending contributions for verification
-router.get('/pending', async (req, res) => {
+router.get('/pending', async (req, res, next) => {
   try {
     const contributions = await Contribution.find({ status: 'pending' }).sort({ submittedDate: -1 });
     res.json(contributions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
 // Get all verified contributions
-router.get('/verified', async (req, res) => {
+router.get('/verified', async (req, res, next) => {
   try {
     const contributions = await Contribution.find({ status: 'verified' }).sort({ verifiedDate: -1 });
     res.json(contributions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
 // Get all rejected contributions
-router.get('/rejected', async (req, res) => {
+router.get('/rejected', async (req, res, next) => {
   try {
     const contributions = await Contribution.find({ status: 'rejected' }).sort({ rejectedDate: -1 });
     res.json(contributions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
 // Approve contribution
-router.put('/approve/:id', async (req, res) => {
+router.put('/approve/:id', async (req, res, next) => {
   try {
     const contribution = await Contribution.findByIdAndUpdate(
       req.params.id,
@@ -56,12 +56,12 @@ router.put('/approve/:id', async (req, res) => {
     
     res.json(contribution);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 });
 
 // Reject contribution
-router.put('/reject/:id', async (req, res) => {
+router.put('/reject/:id', async (req, res, next) => {
   try {
     const { rejectionReason } = req.body;
     if (!rejectionReason) {
@@ -82,12 +82,12 @@ router.put('/reject/:id', async (req, res) => {
     }
     res.json(contribution);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 });
 
 // Get verification statistics
-router.get('/stats', async (req, res) => {
+router.get('/stats', async (req, res, next) => {
   try {
     const pending = await Contribution.countDocuments({ status: 'pending' });
     const verified = await Contribution.countDocuments({ status: 'verified' });
@@ -106,7 +106,7 @@ router.get('/stats', async (req, res) => {
       totalHours
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 

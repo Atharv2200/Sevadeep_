@@ -31,9 +31,34 @@ Make sure you have the following installed on your local machine:
 * [Git](https://git-scm.com/)
 * A local MongoDB instance or a [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) URI
 
+### Project structure
+
+```
+frontend/   React + Vite + Tailwind app
+backend/    Express + Mongoose API (entry point: backend/server.js)
+```
+
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone [https://github.com/your-username/sevadeep-portal.git](https://github.com/your-username/sevadeep-portal.git)
-   cd sevadeep-portal
+   git clone https://github.com/Atharv2200/Sevadeep_.git
+   cd Sevadeep_
+   ```
+
+2. **Backend**
+   ```bash
+   cd backend
+   npm install
+   cp .env.example .env   # then set MONGODB_URI (required)
+   npm run dev            # or: npm start
+   ```
+   The API runs on http://localhost:5000 (`GET /api/health`). The server exits with a clear message if `MONGODB_URI` is missing or MongoDB cannot be reached.
+
+3. **Frontend**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev            # http://localhost:5173
+   npm run build          # production build into frontend/dist
+   ```

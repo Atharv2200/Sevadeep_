@@ -3,7 +3,7 @@ const router = express.Router();
 const Attendance = require('../models/Attendance');
 
 // Get all attendance records
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const { date } = req.query;
     let query = {};
@@ -16,22 +16,22 @@ router.get('/', async (req, res) => {
     const attendance = await Attendance.find(query).sort({ checkIn: -1 });
     res.json(attendance);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
 // Get attendance by volunteer ID
-router.get('/volunteer/:volunteerId', async (req, res) => {
+router.get('/volunteer/:volunteerId', async (req, res, next) => {
   try {
     const attendance = await Attendance.find({ volunteerId: req.params.volunteerId }).sort({ checkIn: -1 });
     res.json(attendance);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
 // Create new attendance record (check-in)
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
   try {
     const attendance = new Attendance(req.body);
     attendance.checkIn = new Date();
@@ -39,12 +39,12 @@ router.post('/', async (req, res) => {
     const savedAttendance = await attendance.save();
     res.status(201).json(savedAttendance);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 });
 
 // Update attendance (check-out)
-router.put('/:id', async (req, res) => {
+router.put('/:id', async (req, res, next) => {
   try {
     const attendance = await Attendance.findByIdAndUpdate(
       req.params.id,
@@ -60,12 +60,12 @@ router.put('/:id', async (req, res) => {
     }
     res.json(attendance);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 });
 
 // Delete attendance record
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res, next) => {
   try {
     const attendance = await Attendance.findByIdAndDelete(req.params.id);
     if (!attendance) {
@@ -73,7 +73,7 @@ router.delete('/:id', async (req, res) => {
     }
     res.json({ message: 'Attendance record deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 });
 
