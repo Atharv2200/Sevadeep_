@@ -74,7 +74,7 @@ Routes stay thin. Services exist only where logic is multi-step, security-sensit
 - Every route declares its input through `validate({ body, params, query })` with `z.strictObject`; **unknown fields are rejected, not stripped**. Mongoose validation is a second layer, not the API validation.
 - No mass assignment: the client never sets ownership, role, status transitions, hours, timestamps, IDs, `volunteerId`, `createdBy`, `qrSecret` or review data.
 - Authorization is enforced server-side on every route (`authenticate`, `requireRole`); frontend guards are UX only. `tests/authorization.test.js` holds a route matrix that fails when a route is added without an access rule; keep it complete.
-- Escape user text before building regexes (`utils/escapeRegex`). Query parser is `simple` (no operator objects). Helmet, body limit 100kb, rate limits where set.
+- Escape user text before building regexes (`utils/escapeRegex`). Query parser is `simple` (no operator objects). Mongoose `sanitizeFilter` is on, so a server-built operator such as `{ $gte: now }` must be wrapped in `mongoose.trusted()`; never wrap anything derived from request input. Helmet, body limit 100kb, rate limits where set.
 - No volunteer PII exposed publicly.
 
 ## Frontend architecture
