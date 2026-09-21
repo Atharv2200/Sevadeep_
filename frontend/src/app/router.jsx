@@ -8,6 +8,8 @@ import AdminAdmins from '../pages/admin/Admins'
 import AdminOverview from '../pages/admin/Overview'
 import AdminVolunteerDetail from '../pages/admin/VolunteerDetail'
 import AdminVolunteers from '../pages/admin/Volunteers'
+import VolunteerActivities from '../pages/volunteer/Activities'
+import VolunteerActivityDetail from '../pages/volunteer/ActivityDetail'
 import VolunteerDashboard from '../pages/volunteer/Dashboard'
 import VolunteerProfile from '../pages/volunteer/Profile'
 import PublicLayout from '../layouts/PublicLayout'
@@ -34,6 +36,8 @@ export default function AppRoutes() {
         <Route element={<RequireRole role={ROLES.VOLUNTEER} />}>
           <Route path="volunteer" element={<VolunteerLayout />}>
             <Route index element={<VolunteerDashboard />} />
+            <Route path="activities" element={<VolunteerActivities />} />
+            <Route path="activities/:id" element={<VolunteerActivityDetail />} />
             <Route path="profile" element={<VolunteerProfile />} />
             <Route path="*" element={<NotFound compact />} />
           </Route>

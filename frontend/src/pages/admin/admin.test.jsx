@@ -41,7 +41,8 @@ describe('admin routes and guards', () => {
     expect(nav.getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/admin')
     expect(nav.getByRole('link', { name: 'Volunteers' })).toHaveAttribute('href', '/admin/volunteers')
     expect(nav.getByRole('link', { name: 'Admins' })).toHaveAttribute('href', '/admin/admins')
-    expect(nav.queryByRole('link', { name: /activities|attendance|verification/i })).not.toBeInTheDocument()
+    expect(nav.getByRole('link', { name: 'Activities' })).toHaveAttribute('href', '/admin/activities')
+    expect(nav.queryByRole('link', { name: /attendance|verification/i })).not.toBeInTheDocument()
   })
 })
 
