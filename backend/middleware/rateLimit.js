@@ -25,23 +25,35 @@ function createLimiter({ windowMs, limit, keyGenerator, skipSuccessfulRequests =
 const byIp = (req) => ipKeyGenerator(req.ip);
 
 // Limiters that read req.body.email must run after validate().
-const limiters = {
-  register: createLimiter({ windowMs: 60 * MINUTE, limit: 10, keyGenerator: byIp }),
-  // Only failed logins count: one limiter per client, one per client+account.
-  loginByIp: createLimiter({ windowMs: 15 * MINUTE, limit: 50, keyGenerator: byIp, skipSuccessfulRequests: true }),
-  loginByAccount: createLimiter({
-    windowMs: 15 * MINUTE,
-    limit: 10,
-    keyGenerator: (req) => `${byIp(req)}|${req.body.email}`,
-    skipSuccessfulRequests: true,
-  }),
-  // Guessing the current password with a stolen session. Runs after authenticate().
-  changePassword: createLimiter({
-    windowMs: 15 * MINUTE,
-    limit: 10,
-    keyGenerator: (req) => String(req.user.id),
-    skipSuccessfulRequests: true,
-  }),
-};
+function buildLimiters(enabled) {
+  return {
+    register: createLimiter({ windowMs: 60 * MINUTE, limit: 10, keyGenerator: byIp, enabled }),
+    // Only failed logins count: one limiter per client, one per client+account.
+    loginByIp: createLimiter({
+      windowMs: 15 * MINUTE,
+      limit: 50,
+      keyGenerator: byIp,
+      skipSuccessfulRequests: true,
+      enabled,
+    }),
+    loginByAccount: createLimiter({
+      windowMs: 15 * MINUTE,
+      limit: 10,
+      keyGenerator: (req) => `${byIp(req)}|${req.body.email}`,
+      skipSuccessfulRequests: true,
+      enabled,
+    }),
+    // Guessing the current password with a stolen session. Runs after authenticate().
+    changePassword: createLimiter({
+      windowMs: 15 * MINUTE,
+      limit: 10,
+      keyGenerator: (req) => String(req.user.id),
+      skipSuccessfulRequests: true,
+      enabled,
+    }),
+  };
+}
 
-module.exports = { createLimiter, limiters };
+const limiters = buildLimiters(rateLimitEnabled);
+
+module.exports = { createLimiter, buildLimiters, limiters };
