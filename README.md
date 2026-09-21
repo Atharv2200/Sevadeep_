@@ -50,10 +50,10 @@ backend/    Express + Mongoose API (entry point: backend/server.js)
    ```bash
    cd backend
    npm install
-   cp .env.example .env   # then set MONGODB_URI (required)
+   cp .env.example .env   # then set MONGODB_URI and JWT_SECRET (both required)
    npm run dev            # or: npm start
    ```
-   The API runs on http://localhost:5000 (`GET /api/health`). The server exits with a clear message if `MONGODB_URI` is missing or MongoDB cannot be reached.
+   The API runs on http://localhost:5000 (`GET /api/health`). The server exits with a clear message if a required variable is missing or MongoDB cannot be reached. Run the API tests with `npm test` (they use the separate `sevadeep-ngo-test` database).
 
 3. **Frontend**
    ```bash
