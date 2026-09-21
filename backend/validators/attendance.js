@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { objectId, pagination } = require('./common');
 
 // A browser position fix. The distance is never accepted from the client.
 const position = {
@@ -14,4 +15,9 @@ const checkIn = z.strictObject({ token: z.string().min(1, 'The QR token is requi
 // Check-out needs no QR token.
 const checkOut = z.strictObject(position);
 
-module.exports = { checkIn, checkOut };
+// A volunteer's history is always their own, so only admins may pick a volunteer.
+const historyQuery = { ...pagination, activity: objectId.optional() };
+const historyForVolunteer = z.strictObject(historyQuery);
+const historyForAdmin = z.strictObject({ ...historyQuery, volunteer: objectId.optional() });
+
+module.exports = { checkIn, checkOut, historyForVolunteer, historyForAdmin };

@@ -61,17 +61,27 @@ function validationError(errors) {
   return new AppError(400, 'Validation failed', { code: 'VALIDATION_ERROR', errors });
 }
 
+const LOCATION_FIELDS = ['latitude', 'longitude', 'radiusMeters'];
+
+function locationLocked() {
+  return new AppError(409, 'The location and radius cannot be changed once volunteers have checked in', {
+    code: 'ACTIVITY_LOCATION_LOCKED',
+  });
+}
+
 // Edits content of a DRAFT or OPEN activity. The start/end pair is re-checked
-// against the stored value when only one of them is sent.
-//
-// Phase 5: once an Attendance exists for the activity, changes to latitude,
-// longitude and radiusMeters must be rejected here (ACTIVITY_LOCATION_LOCKED).
+// against the stored value when only one of them is sent. Once attendance has been
+// recorded (locationLocked, set by the check-in that first recorded it) latitude,
+// longitude and radiusMeters cannot change; re-sending the current values is fine.
 async function updateActivity(user, id, changes) {
   const current = await Activity.findById(id);
   if (!current) throw notFound();
   if (!EDITABLE_STATUSES.includes(current.status)) {
     throw new AppError(409, `A ${current.status.toLowerCase()} activity can no longer be edited`, { code: 'ACTIVITY_LOCKED' });
   }
+
+  const movesLocation = LOCATION_FIELDS.some((field) => field in changes && changes[field] !== current[field]);
+  if (movesLocation && current.locationLocked) throw locationLocked();
 
   const startsAt = changes.startsAt ?? current.startsAt;
   const endsAt = changes.endsAt ?? current.endsAt;
@@ -81,13 +91,18 @@ async function updateActivity(user, id, changes) {
   }
   if (errors.length > 0) throw validationError(errors);
 
-  const updated = await Activity.findOneAndUpdate(
-    { _id: id, status: trusted({ $in: EDITABLE_STATUSES }) },
-    { $set: changes },
-    { new: true, runValidators: true }
-  );
-  // Closed or cancelled by someone else between the read and the write.
-  if (!updated) throw new AppError(409, 'This activity can no longer be edited', { code: 'ACTIVITY_LOCKED' });
+  // A location change also requires that no check-in has locked it since the read above:
+  // check-in sets the lock before it records attendance, so one of the two always loses.
+  const filter = { _id: id, status: trusted({ $in: EDITABLE_STATUSES }) };
+  if (movesLocation) filter.locationLocked = trusted({ $ne: true });
+
+  const updated = await Activity.findOneAndUpdate(filter, { $set: changes }, { new: true, runValidators: true });
+  if (!updated) {
+    // Lost a race: locked by a check-in, or closed or cancelled by another admin.
+    const latest = await Activity.findById(id);
+    if (latest && movesLocation && latest.locationLocked) throw locationLocked();
+    throw new AppError(409, 'This activity can no longer be edited', { code: 'ACTIVITY_LOCKED' });
+  }
   return getActivity(user, id);
 }
 

@@ -4,7 +4,7 @@ const AppError = require('../utils/AppError');
 const { attendanceWindow } = require('../utils/attendanceWindow');
 const { distanceMeters } = require('../utils/geo');
 const { serializeAttendance } = require('../utils/serializers');
-const { verifyToken } = require('./qrTokenService');
+const { issueQr, verifyToken } = require('./qrTokenService');
 
 // Everything here is decided by the server: who the caller is, the activity's state,
 // the attendance window, the QR token, and where the volunteer is. The browser only
@@ -122,4 +122,62 @@ async function checkOut(user, activityId, input, { now = new Date() } = {}) {
   return serializeAttendance(updated, activity);
 }
 
-module.exports = { checkIn, checkOut, assessLocation };
+// The QR for the admin's screen. Only an OPEN activity inside its attendance window
+// gets one, so a code never circulates for attendance that cannot be recorded.
+async function getQr(activityId, { now = new Date() } = {}) {
+  const activity = await Activity.findById(activityId).select('+qrSecret');
+  if (!activity) throw notFound();
+  if (activity.status === 'DRAFT') {
+    throw new AppError(409, 'Open the activity before showing its QR code', { code: 'ACTIVITY_NOT_OPEN' });
+  }
+  assertNotClosed(activity);
+  if (!attendanceWindow(activity, now).isOpen) {
+    throw new AppError(409, 'Attendance is not open for this activity right now', { code: 'ATTENDANCE_WINDOW_CLOSED' });
+  }
+  return issueQr(activity, now);
+}
+
+const LIVE_LIMIT = 200;
+const ACTIVITY_FIELDS = 'title category locationName startsAt endsAt status radiusMeters';
+
+// Everyone who has checked in to the activity, newest first, up to LIVE_LIMIT
+// (v1 does not page this list; the admin's screen polls it).
+async function listLive(activityId) {
+  const activity = await Activity.findById(activityId);
+  if (!activity) throw notFound();
+
+  const [rows, total] = await Promise.all([
+    Attendance.find({ activity: activity._id })
+      .sort({ checkedInAt: -1, _id: -1 })
+      .limit(LIVE_LIMIT)
+      .populate('volunteer', 'volunteerId name')
+      .lean(),
+    Attendance.countDocuments({ activity: activity._id }),
+  ]);
+  return { items: rows.map((row) => serializeAttendance(row, activity, { admin: true, volunteer: row.volunteer })), total };
+}
+
+// Attendance history, newest first. A volunteer always gets their own records and
+// nothing else; an admin gets everyone's and may narrow by activity or volunteer.
+async function listHistory(user, { page, limit, activity, volunteer }) {
+  const admin = user.role === 'ADMIN';
+  const filter = admin ? {} : { volunteer: user.volunteer };
+  if (activity) filter.activity = activity;
+  if (admin && volunteer) filter.volunteer = volunteer;
+
+  const query = Attendance.find(filter)
+    .sort({ checkedInAt: -1, _id: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .populate('activity', ACTIVITY_FIELDS);
+  const [rows, total] = await Promise.all([(admin ? query.populate('volunteer', 'volunteerId name') : query).lean(), Attendance.countDocuments(filter)]);
+
+  return {
+    items: rows.map((row) => serializeAttendance(row, row.activity, { admin, volunteer: admin ? row.volunteer : null })),
+    page,
+    limit,
+    total,
+  };
+}
+
+module.exports = { checkIn, checkOut, assessLocation, getQr, listLive, listHistory, LIVE_LIMIT };

@@ -2,6 +2,7 @@ const express = require('express');
 const validate = require('../middleware/validate');
 const { authenticate } = require('../middleware/authenticate');
 const requireRole = require('../middleware/requireRole');
+const attendanceService = require('../services/attendanceService');
 const activityService = require('../services/activityService');
 const asyncHandler = require('../utils/asyncHandler');
 const schemas = require('../validators/activity');
@@ -31,6 +32,18 @@ router.get(
   validate({ params: schemas.idParams }),
   asyncHandler(async (req, res) => {
     res.json({ activity: await activityService.getActivity(req.user, req.params.id) });
+  })
+);
+
+// The QR for the admin's attendance screen: { url, expiresAt, refreshInSeconds }.
+// Never cached, and generated only on the server.
+router.get(
+  '/:id/qr',
+  requireRole('ADMIN'),
+  validate({ params: schemas.idParams }),
+  asyncHandler(async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json(await attendanceService.getQr(req.params.id));
   })
 );
 

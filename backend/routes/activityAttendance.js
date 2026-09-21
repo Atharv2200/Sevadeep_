@@ -11,6 +11,16 @@ const schemas = require('../validators/attendance');
 // already authenticated the caller.
 const router = express.Router({ mergeParams: true });
 
+// Live attendance for the admin's screen.
+router.get(
+  '/',
+  requireRole('ADMIN'),
+  validate({ params: activitySchemas.idParams }),
+  asyncHandler(async (req, res) => {
+    res.json(await attendanceService.listLive(req.params.id));
+  })
+);
+
 router.post(
   '/',
   requireRole('VOLUNTEER'),
