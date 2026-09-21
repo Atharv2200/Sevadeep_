@@ -20,10 +20,3 @@ logs/
 Thumbs.db
 .idea/
 .vscode/
-
-# design-sync generated output and machine state
-ds-bundle/
-.ds-sync/
-.design-sync/.cache/
-.design-sync/learnings/
-.design-sync/node_modules
