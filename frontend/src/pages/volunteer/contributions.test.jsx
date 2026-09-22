@@ -275,6 +275,8 @@ describe('statistics come from the API, not a local count', () => {
     const mock = mockApi({
       ...signedIn,
       'GET /api/volunteers/me': { body: { volunteer: profile, stats: { activitiesAttended: 4, verifiedActivities: 3, verifiedHours: 7.25 } } },
+      'GET /api/activities': emptyPage,
+      'GET /api/attendance': emptyPage,
     })
     renderApp('/volunteer')
     expect(await screen.findByText('7.25h')).toBeInTheDocument()

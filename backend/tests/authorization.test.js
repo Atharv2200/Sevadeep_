@@ -46,6 +46,7 @@ const MATRIX = [
   ['POST /api/contributions/:id/photos', ['VOLUNTEER']],
   ['DELETE /api/contributions/:id/photos/:photoId', ['VOLUNTEER']],
   ['GET /api/contributions/:id/photos/:photoId', AUTHENTICATED],
+  ['GET /api/stats/admin', ['ADMIN']],
 ];
 
 // Lists every route registered on the Express app as "METHOD /full/path".

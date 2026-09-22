@@ -20,6 +20,37 @@ const row = (n, overrides = {}) => ({
 })
 const listBody = (items, total = items.length, page = 1) => ({ body: { items, page, limit: 20, total } })
 
+const ZERO_ADMIN_STATS = {
+  volunteers: { total: 0, active: 0, suspended: 0 },
+  activities: { total: 0, draft: 0, open: 0, closed: 0, cancelled: 0 },
+  attendance: { total: 0 },
+  contributions: { pending: 0, verified: 0, rejected: 0, verifiedHours: 0 },
+}
+const adminStats = (overrides = {}) => ({
+  volunteers: { ...ZERO_ADMIN_STATS.volunteers, ...overrides.volunteers },
+  activities: { ...ZERO_ADMIN_STATS.activities, ...overrides.activities },
+  attendance: { ...ZERO_ADMIN_STATS.attendance, ...overrides.attendance },
+  contributions: { ...ZERO_ADMIN_STATS.contributions, ...overrides.contributions },
+})
+const noPendingContributions = { 'GET /api/contributions': listBody([], 0) }
+
+const contributionRow = (n, overrides = {}) => ({
+  id: `c${n}`,
+  description: `Helped out at event ${n}.`,
+  status: 'PENDING',
+  approvedHours: null,
+  suggestedHours: null,
+  revision: 0,
+  photos: [],
+  review: { reviewedAt: null, note: '' },
+  activity: { id: `a${n}`, title: `Activity ${n}`, category: 'FOOD', startsAt: '2026-04-01T09:00:00.000Z', endsAt: '2026-04-01T12:00:00.000Z' },
+  attendance: { id: `att${n}`, checkedInAt: '2026-04-01T09:05:00.000Z', checkedOutAt: '2026-04-01T11:55:00.000Z' },
+  volunteer: { id: `v${n}`, volunteerId: `VOL-2026-${String(n).padStart(4, '0')}`, name: `Volunteer ${n}` },
+  createdAt: '2026-04-01T12:10:00.000Z',
+  updatedAt: '2026-04-01T12:10:00.000Z',
+  ...overrides,
+})
+
 describe('admin routes and guards', () => {
   it('shows access denied to a volunteer without calling any admin API', async () => {
     const mock = mockApi({ 'GET /api/auth/me': { body: { user: volunteerUser } } })
@@ -35,7 +66,7 @@ describe('admin routes and guards', () => {
   })
 
   it('has the admin shell and navigation', async () => {
-    mockApi({ ...signedInAdmin, 'GET /api/volunteers': listBody([], 0) })
+    mockApi({ ...signedInAdmin, ...noPendingContributions, 'GET /api/stats/admin': { body: adminStats() } })
     renderApp('/admin')
     const nav = within(await screen.findByRole('navigation', { name: /admin navigation/i }))
     expect(nav.getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/admin')
@@ -47,26 +78,63 @@ describe('admin routes and guards', () => {
 })
 
 describe('Overview', () => {
-  it('shows real counts from the volunteers API', async () => {
+  it('shows the platform-wide summary from the stats API', async () => {
     const mock = mockApi({
       ...signedInAdmin,
-      'GET /api/volunteers': (req) => (req.query.status === 'SUSPENDED' ? listBody([], 3) : listBody([row(1)], 42)),
+      ...noPendingContributions,
+      'GET /api/stats/admin': {
+        body: adminStats({
+          volunteers: { total: 42, active: 39, suspended: 3 },
+          activities: { total: 10, open: 4 },
+          attendance: { total: 87 },
+          contributions: { pending: 2, verified: 15, rejected: 1, verifiedHours: 43.5 },
+        }),
+      },
     })
     renderApp('/admin')
-    const total = await screen.findByText('Volunteers', { selector: 'p' })
-    expect(within(total.parentElement).getByText('42')).toBeInTheDocument()
-    expect(within(screen.getByText('Active').parentElement).getByText('39')).toBeInTheDocument()
-    expect(within(screen.getByText('Suspended').parentElement).getByText('3')).toBeInTheDocument()
-    expect(mock.callsTo('GET /api/volunteers').map((c) => c.query)).toEqual(
-      expect.arrayContaining([{ limit: '1' }, { limit: '1', status: 'SUSPENDED' }])
-    )
+
+    const volunteers = await screen.findByText('Volunteers', { selector: 'p' })
+    expect(within(volunteers.parentElement).getByText('42')).toBeInTheDocument()
+    expect(screen.getByText('39 active · 3 suspended')).toBeInTheDocument()
+
+    const activities = screen.getByText('Activities', { selector: 'p' })
+    expect(within(activities.parentElement).getByText('10')).toBeInTheDocument()
+    expect(screen.getByText('4 open')).toBeInTheDocument()
+
+    expect(within(screen.getByText('Check-ins recorded').parentElement).getByText('87')).toBeInTheDocument()
+    expect(within(screen.getByText('Pending review').parentElement).getByText('2')).toBeInTheDocument()
+    expect(within(screen.getByText('Verified contributions').parentElement).getByText('15')).toBeInTheDocument()
+    expect(within(screen.getByText('Verified hours').parentElement).getByText('43.5h')).toBeInTheDocument()
+
+    expect(mock.callsTo('GET /api/stats/admin')).toHaveLength(1)
   })
 
-  it('shows an error with retry when the counts fail', async () => {
-    mockApi({ ...signedInAdmin, 'GET /api/volunteers': { status: 500, body: { message: 'Internal server error' } } })
+  it('shows an error with retry when the summary fails', async () => {
+    mockApi({ ...signedInAdmin, ...noPendingContributions, 'GET /api/stats/admin': { status: 500, body: { message: 'Internal server error' } } })
     renderApp('/admin')
     expect(await screen.findByText('Internal server error')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+  })
+
+  it('lists pending contributions that need review, linking to each one', async () => {
+    const mock = mockApi({
+      ...signedInAdmin,
+      'GET /api/stats/admin': { body: adminStats({ contributions: { pending: 2 } }) },
+      'GET /api/contributions': listBody([contributionRow(1), contributionRow(2, { volunteer: { id: 'v2', volunteerId: 'VOL-2026-0002', name: 'Priya Rao' } })], 2),
+    })
+    renderApp('/admin')
+
+    expect(await screen.findByRole('link', { name: 'Priya Rao' })).toHaveAttribute('href', '/admin/contributions/c2')
+    expect(screen.getByRole('link', { name: 'Volunteer 1' })).toHaveAttribute('href', '/admin/contributions/c1')
+    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute('href', '/admin/contributions?status=PENDING')
+    expect(mock.callsTo('GET /api/contributions')[0].query).toEqual({ status: 'PENDING', limit: '5' })
+  })
+
+  it('shows an empty state when nothing needs review', async () => {
+    mockApi({ ...signedInAdmin, ...noPendingContributions, 'GET /api/stats/admin': { body: adminStats() } })
+    renderApp('/admin')
+    expect(await screen.findByText('Nothing waiting on you')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'View all' })).not.toBeInTheDocument()
   })
 })
 

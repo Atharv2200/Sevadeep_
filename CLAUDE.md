@@ -62,9 +62,16 @@ Routes stay thin. Services exist only where logic is multi-step, security-sensit
 - Only VERIFIED contributions count. Stats: `activitiesAttended` = Attendance count, `verifiedActivities` = VERIFIED count, `verifiedHours` = sum of `approvedHours` of VERIFIED.
 - Photos are optional, max 5 per contribution, max 5 MB each, JPEG/PNG/WebP only (no SVG), re-encoded with Sharp with EXIF stripped, random storage keys, metadata only in MongoDB, local disk behind a small storage module so object storage can replace it. Served only through an authenticated endpoint with ownership/admin checks and `nosniff`.
 
+## Statistics and dashboards (Phase 7)
+
+- `statsService` is the only place derived statistics are computed. `getVolunteerStats(volunteerId)` (Phase 6) backs the volunteer's own dashboard via `GET /api/volunteers/me`/`GET /api/volunteers/:id`. `getAdminStats()` backs the admin overview via `GET /api/stats/admin` (admin-only): `{ volunteers: {total, active, suspended}, activities: {total, draft, open, closed, cancelled}, attendance: {total}, contributions: {pending, verified, rejected, verifiedHours} }`, aggregated fresh from `User`/`Activity`/`Attendance`/`Contribution` on every read — nothing here is a persisted counter, and a status that has no rows still reports 0.
+- The volunteer Dashboard combines the profile+stats call with the existing list endpoints: `GET /api/activities?limit=3` for the next open activities (server already restricts volunteers to OPEN, not-yet-ended, soonest first) and `GET /api/attendance?limit=5` for recent check-ins. No new backend surface was needed for either panel.
+- The admin Overview combines `GET /api/stats/admin` with `GET /api/contributions?status=PENDING&limit=5` for the "needs review" list. Both dashboards reuse existing, already-authorized endpoints rather than adding bespoke "recent activity" routes.
+- `stats` was a placeholder route group named in API conventions since Phase 4; Phase 7 is what actually fills it in, with a single admin-only summary endpoint (a volunteer's own stats stay on `/volunteers/me`, where they were already scoped correctly).
+
 ## API conventions
 
-- REST under same-origin `/api` (`auth`, `admins`, `volunteers`, `activities`, later `attendance`, `contributions`, `stats`, `health`). PATCH for partial updates. No CORS (the `cors` package and `CORS_ORIGINS` were removed); in development Vite proxies `/api`.
+- REST under same-origin `/api` (`auth`, `admins`, `volunteers`, `activities`, `attendance`, `contributions`, `stats`, `health`). PATCH for partial updates. No CORS (the `cors` package and `CORS_ORIGINS` were removed); in development Vite proxies `/api`.
 - Errors: `{ message, code?, errors? }` with stable machine-readable `code`s (`VALIDATION_ERROR`, `FORBIDDEN`, `NOT_FOUND`, `INVALID_STATUS_TRANSITION`, `QR_EXPIRED`, `OUT_OF_RADIUS`, `ALREADY_CHECKED_IN`, ...). Never leak stacks or database details. A resource owned by someone else returns 404, not 403.
 - Collections: `?page=1&limit=20`, max limit 100, response `{ items, page, limit, total }`.
 - Responses are built by explicit serializers (`utils/serializers.js`), never `res.json(document)`.
@@ -107,6 +114,7 @@ Routes stay thin. Services exist only where logic is multi-step, security-sensit
 4. Activity system (model, CRUD, status transitions, attendance-window computation, volunteer and admin pages) — done.
 5. Secure attendance, QR and location (Attendance model, `qrTokenService`, `attendanceService`, `utils/geo`, check-in/out, live attendance, `/attend/:activityId`) — done. Phone testing needs an HTTPS tunnel; the Vite dev/preview server's hosts are widened only through `VITE_ALLOWED_HOSTS` (never `*`).
 6. Contributions, photos, verification, approved hours, stats (Contribution model, `contributionService`, `statsService`, volunteer submission and edit, admin review; photo uploads via `middleware/upload.js` (Multer, memory storage), `services/imageProcessing.js` (Sharp: format/EXIF/GPS validation and stripping, auto-orient, resize cap), `services/storage.js` (local disk behind a swappable key-based interface), authenticated `GET /api/contributions/:id/photos/:photoId`) — done.
-7. Testing, security hardening, release (CI, production config, README, end-to-end run on real phones).
+7. Statistics and dashboard refinement (`statsService.getAdminStats`, `GET /api/stats/admin`, volunteer Dashboard upcoming/recent panels, admin Overview summary tiles and "needs review" list) — done.
+8. Testing, security hardening, release (CI, production config, README, end-to-end run on real phones).
 
 Work phase by phase; do not start a later phase's features early.
