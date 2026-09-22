@@ -5,7 +5,7 @@ const TONES = {
   neutral: 'bg-gray-100 text-gray-700',
 }
 
-// Known statuses: accounts and activities. Later phases add their own (contribution).
+// Known statuses: accounts, activities and contributions.
 const STATUSES = {
   ACTIVE: { label: 'Active', tone: 'success' },
   SUSPENDED: { label: 'Suspended', tone: 'danger' },
@@ -13,6 +13,9 @@ const STATUSES = {
   OPEN: { label: 'Open', tone: 'success' },
   CLOSED: { label: 'Closed', tone: 'neutral' },
   CANCELLED: { label: 'Cancelled', tone: 'danger' },
+  PENDING: { label: 'Pending review', tone: 'warning' },
+  VERIFIED: { label: 'Verified', tone: 'success' },
+  REJECTED: { label: 'Rejected', tone: 'danger' },
 }
 
 export default function StatusBadge({ status }) {

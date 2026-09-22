@@ -44,3 +44,15 @@ export const ACTIVITY_LIMITS = {
 // Activities that can still be edited. Mirrors the API, which enforces it; used to
 // hide the Edit action on closed and cancelled activities.
 export const EDITABLE_ACTIVITY_STATUSES = ['DRAFT', 'OPEN']
+
+export const CONTRIBUTION_STATUSES = [
+  { value: 'PENDING', label: 'Pending review' },
+  { value: 'VERIFIED', label: 'Verified' },
+  { value: 'REJECTED', label: 'Rejected' },
+]
+
+// Limits and steps mirrored from the API for form hints and input attributes.
+// The server is the one that enforces them.
+export const CONTRIBUTION_LIMITS = { description: 5000, reviewNote: 2000 }
+export const APPROVED_HOURS_STEP = 0.25
+export const MAX_APPROVED_HOURS = 24

@@ -36,8 +36,9 @@ describe('volunteer routes and guards', () => {
     expect(nav.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/volunteer/profile')
     expect(screen.getByRole('link', { name: /password/i })).toHaveAttribute('href', '/change-password')
     expect(nav.getByRole('link', { name: 'Activities' })).toHaveAttribute('href', '/volunteer/activities')
-    // No links to pages that do not exist yet.
-    expect(nav.queryByRole('link', { name: /attendance|contributions/i })).not.toBeInTheDocument()
+    expect(nav.getByRole('link', { name: 'Contributions' })).toHaveAttribute('href', '/volunteer/contributions')
+    // No link to a page that does not exist yet.
+    expect(nav.queryByRole('link', { name: /attendance/i })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: /sign out/i }))
     await waitFor(() => expect(location()).toBe('/'))

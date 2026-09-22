@@ -9,10 +9,13 @@ import AdminActivityDetail from '../pages/admin/ActivityDetail'
 import AdminLiveAttendance from '../pages/admin/LiveAttendance'
 import AdminActivityForm from '../pages/admin/ActivityForm'
 import AdminAdmins from '../pages/admin/Admins'
+import AdminContributionDetail from '../pages/admin/ContributionDetail'
+import AdminContributions from '../pages/admin/Contributions'
 import AdminOverview from '../pages/admin/Overview'
 import AdminVolunteerDetail from '../pages/admin/VolunteerDetail'
 import AdminVolunteers from '../pages/admin/Volunteers'
 import VolunteerAttend from '../pages/volunteer/Attend'
+import VolunteerContributions from '../pages/volunteer/Contributions'
 import VolunteerHistory from '../pages/volunteer/History'
 import VolunteerActivities from '../pages/volunteer/Activities'
 import VolunteerActivityDetail from '../pages/volunteer/ActivityDetail'
@@ -45,6 +48,7 @@ export default function AppRoutes() {
             <Route path="activities" element={<VolunteerActivities />} />
             <Route path="activities/:id" element={<VolunteerActivityDetail />} />
             <Route path="history" element={<VolunteerHistory />} />
+            <Route path="contributions" element={<VolunteerContributions />} />
             <Route path="profile" element={<VolunteerProfile />} />
             <Route path="*" element={<NotFound compact />} />
           </Route>
@@ -62,6 +66,8 @@ export default function AppRoutes() {
             <Route path="activities/:id" element={<AdminActivityDetail />} />
             <Route path="activities/:id/edit" element={<AdminActivityForm />} />
             <Route path="activities/:id/attendance" element={<AdminLiveAttendance />} />
+            <Route path="contributions" element={<AdminContributions />} />
+            <Route path="contributions/:id" element={<AdminContributionDetail />} />
             <Route path="volunteers" element={<AdminVolunteers />} />
             <Route path="volunteers/:id" element={<AdminVolunteerDetail />} />
             <Route path="admins" element={<AdminAdmins />} />
