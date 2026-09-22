@@ -88,14 +88,38 @@ backend/    Express + Mongoose API (entry point: backend/server.js)
 
 ### Testing attendance on a phone
 
-The QR must open on a phone, and browsers only give a page the device's location over **HTTPS** (`http://localhost` is exempt on the machine running it, but a phone reaches your laptop by another name). Use an HTTPS tunnel; the cookie, the Origin check and the QR URL all need to agree on one public address.
+Browsers only give a page the device's location over **HTTPS**. Your phone can't reach `http://localhost`, so a [Cloudflare Quick Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) gives your local frontend a temporary public HTTPS address — the phone talks to that address, which forwards to the frontend on your machine, which still talks to your local backend and MongoDB exactly as in normal development. Nothing about the app itself needs to change for this.
 
-1. Start a tunnel to the frontend, e.g. `cloudflared tunnel --url http://localhost:4173` or `ngrok http 4173`, and note its `https://...` address.
-2. Backend: set `PUBLIC_APP_URL` to that address in `backend/.env` (QR links are built from it, and it is the Origin the API accepts), then `npm run dev`.
-3. Frontend: `npm run build`, then serve it with the tunnel's hostname allowed:
+1. **Start the backend** as usual:
    ```bash
-   VITE_ALLOWED_HOSTS=.trycloudflare.com npm run preview -- --port 4173
+   cd backend
+   npm run dev
    ```
-   (`.ngrok-free.app` for ngrok, or an exact hostname.) Vite refuses any `Host` it is not told about; `VITE_ALLOWED_HOSTS` adds only the names you list (exact hostnames or `.suffix.tld`, never `*`), and unset it changes nothing.
-4. Open the tunnel address on your computer, sign in as an admin, create an activity, open it, and open its attendance screen. Set the activity's location to where you are and give it a start time within the attendance window.
-5. On the phone, scan the QR with the normal camera app and open the link. If you are signed out you are sent to sign in and returned to the attendance page; tap **Check in** and allow location. The volunteer appears on the admin screen within ten seconds.
+
+2. **Start the frontend** with the phone-testing command, allowing Cloudflare's hostname:
+   ```bash
+   cd frontend
+   VITE_ALLOWED_HOSTS=.trycloudflare.com npm run dev:phone
+   ```
+
+3. **Start a Cloudflare Quick Tunnel** pointed at the frontend (requires [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) installed):
+   ```bash
+   cloudflared tunnel --url http://localhost:5173
+   ```
+   It prints a temporary HTTPS address, e.g. `https://example-name.trycloudflare.com`. This address changes every time you restart `cloudflared`.
+
+4. **Tell the backend about that address.** The activity QR is built from `PUBLIC_APP_URL`, so pointing it at the tunnel makes the QR link out to the phone-reachable HTTPS address instead of `localhost` — no other change is needed for QR generation. In `backend/.env`, temporarily set:
+   ```
+   PUBLIC_APP_URL=https://example-name.trycloudflare.com
+   ```
+   then restart the backend (`npm run dev`) so it picks up the change.
+
+5. **On your computer**, open the Cloudflare HTTPS address, sign in as an admin, and open (or create) an activity with a valid location and an attendance window that is currently open. Open its QR.
+
+6. **On the phone**, scan the QR with the normal camera app, sign in as a volunteer if asked, allow location access, and check in. The attendance should appear on the admin screen within a few seconds.
+
+7. **When you're done**, restore normal desktop development: in `backend/.env` set
+   ```
+   PUBLIC_APP_URL=http://localhost:5173
+   ```
+   and restart the backend.
