@@ -7,6 +7,7 @@ router.use('/admins', require('./admins'));
 router.use('/volunteers', require('./volunteers'));
 router.use('/activities', require('./activities'));
 router.use('/attendance', require('./attendance'));
+router.use('/contributions', require('./contributions'));
 
 // Public health check.
 router.get('/health', (req, res) => {
