@@ -2,10 +2,8 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import About from './sections/About'
 import Activities from './sections/Activities'
-import Contact from './sections/Contact'
-import Gallery from './sections/Gallery'
+import GetInvolved from './sections/GetInvolved'
 import Hero from './sections/Hero'
-import Stats from './sections/Stats'
 
 export default function Home() {
   const location = useLocation()
@@ -21,11 +19,9 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <Stats />
       <About />
       <Activities />
-      <Gallery />
-      <Contact />
+      <GetInvolved />
     </>
   )
 }
