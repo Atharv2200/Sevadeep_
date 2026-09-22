@@ -112,14 +112,19 @@ describe('POST /api/activities/:id/attendance (check-in)', () => {
   });
 
   describe('location', () => {
-    it('accepts an accuracy of exactly MAX_ACCURACY_METERS and rejects anything worse', async () => {
-      const { activity, agent } = await scene();
-      const worse = await agent.post(url(activity)).send(await f.checkInBody(activity, { accuracy: 100.01 }));
-      assert.equal(worse.status, 422);
-      assert.equal(codeOf(worse), 'POOR_LOCATION_ACCURACY');
-      assert.equal(await Attendance.countDocuments(), 0);
+    it('accepts a point within radius regardless of how poor the reported accuracy is', async () => {
+      const { activity, agent } = await scene({ radiusMeters: 100 });
+      const res = await agent.post(url(activity)).send(await f.checkInBody(activity, { accuracy: 500 }));
+      assert.equal(res.status, 201);
+      assert.equal((await Attendance.findOne()).checkIn.accuracy, 500);
+    });
 
-      assert.equal((await agent.post(url(activity)).send(await f.checkInBody(activity, { accuracy: 100 }))).status, 201);
+    it('rejects a point outside radius even with excellent accuracy', async () => {
+      const { activity, agent } = await scene({ radiusMeters: 100 });
+      const res = await agent.post(url(activity)).send(await f.checkInBody(activity, { ...f.pointAt(activity, 150), accuracy: 1 }));
+      assert.equal(res.status, 422);
+      assert.equal(codeOf(res), 'OUT_OF_RADIUS');
+      assert.equal(await Attendance.countDocuments(), 0);
     });
 
     it('accepts a point on the radius and rejects one just outside', async () => {
@@ -140,7 +145,7 @@ describe('POST /api/activities/:id/attendance (check-in)', () => {
 
     it('never tells the volunteer a distance or an accuracy', async () => {
       const { activity, agent } = await scene();
-      for (const overrides of [{ ...f.pointAt(activity, 350) }, { accuracy: 250 }]) {
+      for (const overrides of [{ ...f.pointAt(activity, 350) }, { ...f.pointAt(activity, 500) }]) {
         const res = await agent.post(url(activity)).send(await f.checkInBody(activity, overrides));
         assert.equal(res.status, 422);
         assert.equal(/\d/.test(res.body.message), false, res.body.message);
@@ -349,7 +354,6 @@ describe('POST /api/activities/:id/attendance (check-in)', () => {
   it('stores nothing for any rejected attempt', async () => {
     const { activity, agent } = await scene();
     await agent.post(url(activity)).send(await f.checkInBody(activity, { token: 'bad' }));
-    await agent.post(url(activity)).send(await f.checkInBody(activity, { accuracy: 500 }));
     await agent.post(url(activity)).send(await f.checkInBody(activity, f.pointAt(activity, 5000)));
     await agent.post(url(activity)).send({});
     assert.equal(await Attendance.countDocuments(), 0);
@@ -401,12 +405,10 @@ describe('POST /api/activities/:id/attendance/check-out', () => {
 
   it('validates the location like check-in', async () => {
     const { activity, agent } = await checkedIn({ radiusMeters: 100 });
-    const poor = await agent.post(url(activity, '/check-out')).send(position(activity, 0, 100.01));
-    assert.equal(codeOf(poor), 'POOR_LOCATION_ACCURACY');
     const far = await agent.post(url(activity, '/check-out')).send(position(activity, 100.01));
     assert.equal(codeOf(far), 'OUT_OF_RADIUS');
     assert.equal((await Attendance.findOne()).checkedOutAt, null);
-    assert.equal((await agent.post(url(activity, '/check-out')).send(position(activity, 99.99, 100))).status, 200);
+    assert.equal((await agent.post(url(activity, '/check-out')).send(position(activity, 99.99, 500))).status, 200);
   });
 
   it('rejects a QR token, a distance and other client-controlled fields', async () => {

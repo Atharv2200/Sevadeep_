@@ -1,5 +1,4 @@
 const { Activity, Attendance } = require('../models');
-const { maxAccuracyMeters } = require('../config/env');
 const AppError = require('../utils/AppError');
 const { attendanceWindow } = require('../utils/attendanceWindow');
 const { distanceMeters } = require('../utils/geo');
@@ -32,13 +31,10 @@ function assertNotClosed(activity) {
 
 // Judges a reported position. Rejections carry no numbers: the volunteer is told
 // what to do, not how far away the check thinks they are.
-// Returns the evidence to store, with the server-calculated distance.
+// Returns the evidence to store, with the server-calculated distance. Reported
+// accuracy is not a rejection criterion (see attendanceFlags.LOW_ACCURACY): it is
+// only ever stored as evidence and surfaced to admins as an informational flag.
 function assessLocation(activity, { latitude, longitude, accuracy }) {
-  if (accuracy > maxAccuracyMeters) {
-    throw new AppError(422, "Your device's location is not accurate enough. Move to an open area, wait a moment and try again.", {
-      code: 'POOR_LOCATION_ACCURACY',
-    });
-  }
   const distance = distanceMeters(activity, { latitude, longitude });
   if (distance > activity.radiusMeters) {
     throw new AppError(422, 'You do not appear to be at the venue.', { code: 'OUT_OF_RADIUS' });
