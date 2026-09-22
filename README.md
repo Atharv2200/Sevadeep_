@@ -114,7 +114,7 @@ Browsers only give a page the device's location over **HTTPS**. Your phone can't
    ```
    then restart the backend (`npm run dev`) so it picks up the change.
 
-5. **On your computer**, open the Cloudflare HTTPS address, sign in as an admin, and open (or create) an activity with a valid location and an attendance window that is currently open. Open its QR.
+5. **On your computer**, open http://localhost:5173, sign in as an admin, and open (or create) an activity with a valid location and an attendance window that is currently open. Open its QR.
 
 6. **On the phone**, scan the QR with the normal camera app, sign in as a volunteer if asked, allow location access, and check in. The attendance should appear on the admin screen within a few seconds.
 
