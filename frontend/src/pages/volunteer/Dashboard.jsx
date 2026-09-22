@@ -1,9 +1,16 @@
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Award, Calendar, Clock, Mail, Phone, TrendingUp } from 'lucide-react'
+import { Award, Calendar, CalendarCheck, Clock, Mail, Phone, TrendingUp } from 'lucide-react'
+import { activitiesApi } from '../../api/activities'
+import { attendanceApi } from '../../api/attendance'
 import { volunteersApi } from '../../api/volunteers'
-import { Card, EmptyState, ErrorState, PageHeader, Spinner } from '../../components/ui'
+import { Button, Card, EmptyState, ErrorState, PageHeader, Spinner } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
-import { formatDate, formatHours } from '../../lib/format'
+import { categoryLabel } from '../../lib/constants'
+import { formatActivityTime, formatDate, formatDateTime, formatHours } from '../../lib/format'
+
+const UPCOMING_LIMIT = 3
+const RECENT_LIMIT = 5
 
 function StatCard({ icon: Icon, tone, value, label, delay }) {
   return (
@@ -23,8 +30,20 @@ function StatCard({ icon: Icon, tone, value, label, delay }) {
   )
 }
 
+// Profile, derived stats, the next few activities the volunteer could join, and
+// their most recent attendance — everything the API already exposes, combined
+// into one load like the admin Overview does with its counts.
+async function loadDashboard(signal) {
+  const [me, upcoming, recent] = await Promise.all([
+    volunteersApi.getMe({ signal }),
+    activitiesApi.list({ limit: UPCOMING_LIMIT }, { signal }),
+    attendanceApi.list({ limit: RECENT_LIMIT }, { signal }),
+  ])
+  return { volunteer: me.volunteer, stats: me.stats, upcoming: upcoming.items, recent: recent.items }
+}
+
 export default function Dashboard() {
-  const { data, error, loading, reload } = useAsync((signal) => volunteersApi.getMe({ signal }), [])
+  const { data, error, loading, reload } = useAsync(loadDashboard, [])
 
   if (loading && !data) {
     return (
@@ -35,7 +54,7 @@ export default function Dashboard() {
   }
   if (error) return <ErrorState error={error} onRetry={reload} />
 
-  const { volunteer, stats } = data
+  const { volunteer, stats, upcoming, recent } = data
 
   return (
     <>
@@ -66,17 +85,72 @@ export default function Dashboard() {
         <StatCard icon={Award} tone="bg-yellow-100 text-yellow-600" value={stats.verifiedActivities} label="Verified contributions" delay={0.2} />
       </div>
 
-      <Card>
-        <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-          <TrendingUp className="w-6 h-6 text-primary-600" aria-hidden="true" />
-          Recent activity
-        </h3>
-        <EmptyState
-          icon={Clock}
-          title="Nothing here yet"
-          description="Activities you attend and contributions that are verified will appear here."
-        />
-      </Card>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Card>
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-primary-600" aria-hidden="true" />
+            Upcoming activities
+          </h3>
+          {upcoming.length === 0 ? (
+            <EmptyState
+              icon={Calendar}
+              title="No open activities right now"
+              description="Check back soon — new activities appear here as soon as they open."
+            />
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {upcoming.map((activity) => (
+                <li key={activity.id} className="py-3 first:pt-0 last:pb-0">
+                  <Link to={`/volunteer/activities/${activity.id}`} className="font-semibold text-gray-900 hover:text-primary-600">
+                    {activity.title}
+                  </Link>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {categoryLabel(activity.category)} · {formatActivityTime(activity.startsAt, activity.endsAt)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-4">
+            <Button as={Link} to="/volunteer/activities" variant="secondary" size="sm">Browse all activities</Button>
+          </div>
+        </Card>
+
+        <Card>
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-primary-600" aria-hidden="true" />
+            Recent activity
+          </h3>
+          {recent.length === 0 ? (
+            <EmptyState
+              icon={CalendarCheck}
+              title="Nothing here yet"
+              description="Activities you attend and contributions that are verified will appear here."
+            />
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {recent.map((item) => (
+                <li key={item.id} className="py-3 first:pt-0 last:pb-0 flex items-start justify-between gap-3">
+                  <div>
+                    <Link to={`/volunteer/activities/${item.activity.id}`} className="font-semibold text-gray-900 hover:text-primary-600">
+                      {item.activity.title}
+                    </Link>
+                    <p className="text-xs text-gray-500 mt-0.5">Checked in {formatDateTime(item.checkedInAt)}</p>
+                  </div>
+                  {!item.checkedOutAt && (
+                    <Link to={`/attend/${item.activity.id}`} className="text-xs text-primary-600 hover:text-primary-700 font-medium whitespace-nowrap">
+                      Check out
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-4">
+            <Button as={Link} to="/volunteer/history" variant="secondary" size="sm">View full history</Button>
+          </div>
+        </Card>
+      </div>
     </>
   )
 }

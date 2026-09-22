@@ -9,6 +9,10 @@ const location = () => screen.getByTestId('location').textContent
 const profile = { ...volunteerUser.volunteer, email: volunteerUser.email }
 const stats = { activitiesAttended: 7, verifiedActivities: 5, verifiedHours: 12.5 }
 const signedIn = { 'GET /api/auth/me': { body: { user: volunteerUser } } }
+const listBody = (items, total = items.length, page = 1) => ({ body: { items, page, limit: 20, total } })
+// The dashboard's "upcoming" and "recent" panels are empty by default; tests
+// that care about their content override these two routes.
+const emptyDashboardExtras = { 'GET /api/activities': listBody([], 0), 'GET /api/attendance': listBody([], 0) }
 
 describe('volunteer routes and guards', () => {
   it('sends an anonymous visitor to sign in, remembering the destination', async () => {
@@ -27,6 +31,7 @@ describe('volunteer routes and guards', () => {
   it('has a working shell: navigation, account links and sign out', async () => {
     const mock = mockApi({
       ...signedIn,
+      ...emptyDashboardExtras,
       'GET /api/volunteers/me': { body: { volunteer: profile, stats } },
       'POST /api/auth/logout': { status: 204 },
     })
@@ -36,8 +41,9 @@ describe('volunteer routes and guards', () => {
     expect(nav.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/volunteer/profile')
     expect(screen.getByRole('link', { name: /password/i })).toHaveAttribute('href', '/change-password')
     expect(nav.getByRole('link', { name: 'Activities' })).toHaveAttribute('href', '/volunteer/activities')
-    // No links to pages that do not exist yet.
-    expect(nav.queryByRole('link', { name: /attendance|contributions/i })).not.toBeInTheDocument()
+    expect(nav.getByRole('link', { name: 'Contributions' })).toHaveAttribute('href', '/volunteer/contributions')
+    // No link to a page that does not exist yet.
+    expect(nav.queryByRole('link', { name: /attendance/i })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: /sign out/i }))
     await waitFor(() => expect(location()).toBe('/'))
@@ -49,6 +55,7 @@ describe('volunteer routes and guards', () => {
     const gate = new Promise((resolve) => { release = resolve })
     mockApi({
       ...signedIn,
+      ...emptyDashboardExtras,
       'GET /api/volunteers/me': { body: { volunteer: profile, stats } },
       'POST /api/auth/logout': async () => {
         await gate
@@ -75,7 +82,7 @@ describe('volunteer routes and guards', () => {
 
 describe('Dashboard', () => {
   it('shows the profile and derived stats returned by the backend', async () => {
-    mockApi({ ...signedIn, 'GET /api/volunteers/me': { body: { volunteer: profile, stats } } })
+    mockApi({ ...signedIn, ...emptyDashboardExtras, 'GET /api/volunteers/me': { body: { volunteer: profile, stats } } })
     renderApp('/volunteer')
 
     expect(await screen.findByRole('heading', { name: 'Asha Rao' })).toBeInTheDocument()
@@ -88,7 +95,11 @@ describe('Dashboard', () => {
   })
 
   it('contains no mock data or retired QR section', async () => {
-    mockApi({ ...signedIn, 'GET /api/volunteers/me': { body: { volunteer: profile, stats: { activitiesAttended: 0, verifiedActivities: 0, verifiedHours: 0 } } } })
+    mockApi({
+      ...signedIn,
+      ...emptyDashboardExtras,
+      'GET /api/volunteers/me': { body: { volunteer: profile, stats: { activitiesAttended: 0, verifiedActivities: 0, verifiedHours: 0 } } },
+    })
     renderApp('/volunteer')
     await screen.findByRole('heading', { name: 'Asha Rao' })
     for (const mock of [/priya sharma/i, /VOL-2024-001/, /qr code/i, /45h/, /food distribution/i]) {
@@ -98,11 +109,57 @@ describe('Dashboard', () => {
     expect(screen.getByText('0h')).toBeInTheDocument()
   })
 
+  it('lists the next open activities and links to browse all', async () => {
+    mockApi({
+      ...signedIn,
+      'GET /api/volunteers/me': { body: { volunteer: profile, stats } },
+      'GET /api/activities': listBody([
+        { id: 'a1', title: 'River cleanup', category: 'CLEANLINESS', startsAt: '2026-04-05T09:00:00.000Z', endsAt: '2026-04-05T12:00:00.000Z' },
+      ], 1),
+      'GET /api/attendance': listBody([], 0),
+    })
+    renderApp('/volunteer')
+    const link = await screen.findByRole('link', { name: 'River cleanup' })
+    expect(link).toHaveAttribute('href', '/volunteer/activities/a1')
+    expect(screen.getByRole('link', { name: /browse all activities/i })).toHaveAttribute('href', '/volunteer/activities')
+    expect(screen.queryByText('No open activities right now')).not.toBeInTheDocument()
+  })
+
+  it('shows an empty state when there are no open activities', async () => {
+    mockApi({ ...signedIn, ...emptyDashboardExtras, 'GET /api/volunteers/me': { body: { volunteer: profile, stats } } })
+    renderApp('/volunteer')
+    await screen.findByRole('heading', { name: 'Asha Rao' })
+    expect(screen.getByText('No open activities right now')).toBeInTheDocument()
+  })
+
+  it('lists recent attendance, with a check-out link when still checked in', async () => {
+    mockApi({
+      ...signedIn,
+      'GET /api/volunteers/me': { body: { volunteer: profile, stats } },
+      'GET /api/activities': listBody([], 0),
+      'GET /api/attendance': listBody([
+        {
+          id: 'att1',
+          checkedInAt: '2026-03-20T09:00:00.000Z',
+          checkedOutAt: null,
+          durationMinutes: null,
+          activity: { id: 'a2', title: 'Food drive', category: 'FOOD', locationName: 'Community hall', startsAt: '2026-03-20T09:00:00.000Z', endsAt: '2026-03-20T12:00:00.000Z', status: 'OPEN' },
+        },
+      ], 1),
+    })
+    renderApp('/volunteer')
+    const link = await screen.findByRole('link', { name: 'Food drive' })
+    expect(link).toHaveAttribute('href', '/volunteer/activities/a2')
+    expect(screen.getByRole('link', { name: /check out/i })).toHaveAttribute('href', '/attend/a2')
+    expect(screen.getByRole('link', { name: /view full history/i })).toHaveAttribute('href', '/volunteer/history')
+  })
+
   it('shows a loading state until the data arrives', async () => {
     let release
     const gate = new Promise((resolve) => { release = resolve })
     mockApi({
       ...signedIn,
+      ...emptyDashboardExtras,
       'GET /api/volunteers/me': async () => {
         await gate
         return { body: { volunteer: profile, stats } }
@@ -121,6 +178,7 @@ describe('Dashboard', () => {
     let up = false
     mockApi({
       ...signedIn,
+      ...emptyDashboardExtras,
       'GET /api/volunteers/me': () => (up ? { body: { volunteer: profile, stats } } : { status: 500, body: { message: 'Internal server error' } }),
     })
     renderApp('/volunteer')
@@ -133,6 +191,7 @@ describe('Dashboard', () => {
   it('returns to sign-in, with a notice, if the session ends while the page loads', async () => {
     mockApi({
       ...signedIn,
+      ...emptyDashboardExtras,
       'GET /api/volunteers/me': { status: 401, body: { message: 'expired', code: 'INVALID_SESSION' } },
     })
     renderApp('/volunteer')

@@ -15,6 +15,19 @@ export function formatHours(hours) {
   return `${Number(hours.toFixed(2))}h`
 }
 
+// 500 -> "500 B", 5242880 -> "5 MB"
+export function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`
+  const units = ['KB', 'MB', 'GB']
+  let value = bytes / 1024
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit += 1
+  }
+  return `${Number(value.toFixed(1))} ${units[unit]}`
+}
+
 const weekdayDateFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
 

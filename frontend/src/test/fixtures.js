@@ -67,3 +67,43 @@ export function adminAttendance(n = 1, overrides = {}) {
 }
 
 export const emptyPage = { body: { items: [], page: 1, limit: 1, total: 0 } }
+
+// A contribution as a volunteer sees it: their own submission, and the outcome once
+// reviewed. `activity` and `attendance` are summaries; only VERIFIED carries hours.
+export function contribution(n = 1, overrides = {}) {
+  return {
+    id: `con${n}`,
+    description: `Helped set up and serve at activity ${n}.`,
+    status: 'PENDING',
+    approvedHours: null,
+    suggestedHours: null,
+    revision: 0,
+    photos: [],
+    review: { reviewedAt: null, note: '' },
+    activity: {
+      id: `act${n}`,
+      title: `Activity ${n}`,
+      category: 'FOOD',
+      startsAt: '2031-05-01T09:00:00.000Z',
+      endsAt: '2031-05-01T12:00:00.000Z',
+    },
+    attendance: { id: `att${n}`, checkedInAt: '2031-05-01T09:05:00.000Z', checkedOutAt: null },
+    createdAt: '2031-05-01T09:10:00.000Z',
+    updatedAt: '2031-05-01T09:10:00.000Z',
+    ...overrides,
+  }
+}
+
+// A contribution photo as the API serializes it: metadata only, never the storage key.
+export function contributionPhoto(n = 1, overrides = {}) {
+  return { id: `photo${n}`, mimeType: 'image/jpeg', size: 102400, originalName: `photo${n}.jpg`, ...overrides }
+}
+
+// The admin view adds who submitted it and (once reviewed) who reviewed it.
+export function adminContribution(n = 1, overrides = {}) {
+  return contribution(n, {
+    volunteer: { id: `vol${n}`, volunteerId: `VOL-2031-000${n}`, name: `Volunteer ${n}` },
+    review: { reviewedAt: null, note: '', reviewedBy: null },
+    ...overrides,
+  })
+}

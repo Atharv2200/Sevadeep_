@@ -55,13 +55,15 @@ function fallbackMessage(status) {
   return 'The request could not be completed.'
 }
 
-async function request(method, path, { body, query, signal } = {}) {
+// `isForm` sends `body` (a FormData) as-is: the browser sets the multipart
+// boundary itself, so no Content-Type header is set here for it.
+async function request(method, path, { body, query, signal, isForm = false } = {}) {
   let response
   try {
     response = await fetch(buildUrl(path, query), {
       method,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: body === undefined || isForm ? undefined : { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
       credentials: 'same-origin',
       signal,
     })
@@ -90,4 +92,6 @@ export const api = {
   get: (path, options) => request('GET', path, options),
   post: (path, body, options) => request('POST', path, { ...options, body: body ?? {} }),
   patch: (path, body, options) => request('PATCH', path, { ...options, body }),
+  delete: (path, options) => request('DELETE', path, options),
+  postForm: (path, formData, options) => request('POST', path, { ...options, body: formData, isForm: true }),
 }

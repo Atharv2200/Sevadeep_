@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, LocateFixed } from 'lucide-react'
 import { activitiesApi } from '../../api/activities'
 import { Alert, Button, Card, ErrorState, PageHeader, Select, Spinner, TextField } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
 import { ACTIVITY_CATEGORIES, ACTIVITY_LIMITS, EDITABLE_ACTIVITY_STATUSES } from '../../lib/constants'
 import { fromLocalInput, toLocalInput } from '../../lib/format'
+import { getPosition } from '../../lib/geolocation'
 
 const EMPTY_FORM = {
   title: '',
@@ -122,10 +123,29 @@ function Form({ activity, editing, back, onDone }) {
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [locationError, setLocationError] = useState(null)
 
   const update = (field) => (event) => {
     setForm((previous) => ({ ...previous, [field]: event.target.value }))
     setLocalErrors((previous) => ({ ...previous, [field]: undefined }))
+  }
+
+  // Fills latitude/longitude from the device's current position, leaving the radius
+  // and everything else untouched. The admin can still review and edit the result
+  // before submitting.
+  const useCurrentLocation = async () => {
+    setLocationError(null)
+    setLocating(true)
+    try {
+      const { latitude, longitude } = await getPosition()
+      setForm((previous) => ({ ...previous, latitude: String(latitude), longitude: String(longitude) }))
+      setLocalErrors((previous) => ({ ...previous, latitude: undefined, longitude: undefined }))
+    } catch (err) {
+      setLocationError(err)
+    } finally {
+      setLocating(false)
+    }
   }
 
   const submit = async (event) => {
@@ -230,12 +250,21 @@ function Form({ activity, editing, back, onDone }) {
                 Volunteers have already checked in, so the coordinates and radius can no longer change.
               </Alert>
             )}
+            {!locked && (
+              <div>
+                <Button type="button" variant="secondary" size="sm" onClick={useCurrentLocation} loading={locating} disabled={locating}>
+                  {!locating && <LocateFixed className="w-4 h-4" aria-hidden="true" />}
+                  Use my current location
+                </Button>
+                {locationError && <p className="mt-2 text-sm text-red-600">{locationError.message}</p>}
+              </div>
+            )}
             <div className="grid sm:grid-cols-3 gap-5">
               <TextField label="Latitude" type="number" inputMode="decimal" step="any" required disabled={locked} hint="For example 18.5204" {...props('latitude')} />
               <TextField label="Longitude" type="number" inputMode="decimal" step="any" required disabled={locked} hint="For example 73.8567" {...props('longitude')} />
               <TextField label="Check-in radius (metres)" type="number" inputMode="numeric" step="1" required disabled={locked} hint="25 to 5000" {...props('radiusMeters')} />
             </div>
-            <p className="text-sm text-gray-500">Tip: in a maps app, press and hold the venue and copy the coordinates shown.</p>
+            <p className="text-sm text-gray-500">Tip: use "Use my current location" at the venue, or in a maps app press and hold the venue and copy the coordinates shown.</p>
           </div>
         </Card>
 

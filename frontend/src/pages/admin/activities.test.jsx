@@ -1,14 +1,19 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderApp } from '../../test/renderApp'
 import { activity, adminActivity, listBody } from '../../test/fixtures'
 import { adminUser, mockApi, volunteerUser } from '../../test/mockFetch'
 import { toLocalInput } from '../../lib/format'
+import { fix, positionFails, positionFound, removeGeolocation } from '../../test/geolocation'
 
 const location = () => screen.getByTestId('location').textContent
 const signedIn = { 'GET /api/auth/me': { body: { user: adminUser } } }
 const admin20 = (items, total) => listBody(items, total, 1, 20)
+
+afterEach(() => {
+  vi.stubGlobal('isSecureContext', true)
+})
 
 describe('admin Activities list', () => {
   it('lists every activity with its status and links to the detail page', async () => {
@@ -288,6 +293,66 @@ describe('admin Activity form: create', () => {
     mockApi({ 'GET /api/auth/me': { body: { user: volunteerUser } } })
     renderApp('/admin/activities/new')
     expect(await screen.findByText(/don't have access/i)).toBeInTheDocument()
+  })
+})
+
+describe('admin Activity form: use my current location', () => {
+  it('fills latitude and longitude from the device position, leaving the radius untouched', async () => {
+    mockApi({ ...signedIn })
+    renderApp('/admin/activities/new')
+    await screen.findByLabelText(/^title/i)
+    positionFound(fix(12.9716, 77.5946, 15))
+
+    await userEvent.click(screen.getByRole('button', { name: /use my current location/i }))
+
+    expect(await screen.findByLabelText(/^latitude/i)).toHaveValue(12.9716)
+    expect(screen.getByLabelText(/^longitude/i)).toHaveValue(77.5946)
+    expect(screen.getByLabelText(/check-in radius/i)).toHaveValue(100)
+  })
+
+  it('leaves manual entry available and does not overwrite a later manual edit', async () => {
+    mockApi({ ...signedIn })
+    renderApp('/admin/activities/new')
+    await screen.findByLabelText(/^title/i)
+    positionFound(fix(12.9716, 77.5946))
+
+    await userEvent.click(screen.getByRole('button', { name: /use my current location/i }))
+    await screen.findByDisplayValue('12.9716')
+    await userEvent.clear(screen.getByLabelText(/^latitude/i))
+    await userEvent.type(screen.getByLabelText(/^latitude/i), '18.5204')
+
+    expect(screen.getByLabelText(/^latitude/i)).toHaveValue(18.5204)
+  })
+
+  it.each([
+    ['permission denied', () => positionFails(1), /allow location/i],
+    ['position unavailable', () => positionFails(2), /couldn't work out where you are/i],
+    ['timeout', () => positionFails(3), /took too long/i],
+    ['no geolocation support', () => removeGeolocation(), /can't share your location/i],
+  ])('%s: shows a message and sends no request', async (label, arrange, message) => {
+    const mock = mockApi({ ...signedIn })
+    renderApp('/admin/activities/new')
+    await screen.findByLabelText(/^title/i)
+    arrange()
+
+    await userEvent.click(screen.getByRole('button', { name: /use my current location/i }))
+
+    expect(await screen.findByText(message)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^latitude/i)).toHaveValue(null)
+    expect(mock.callsTo('POST /api/activities')).toHaveLength(0)
+  })
+
+  it('explains an insecure page', async () => {
+    mockApi({ ...signedIn })
+    renderApp('/admin/activities/new')
+    await screen.findByLabelText(/^title/i)
+    const geo = positionFound()
+    vi.stubGlobal('isSecureContext', false)
+
+    await userEvent.click(screen.getByRole('button', { name: /use my current location/i }))
+
+    expect(await screen.findByText(/secure \(https\)/i)).toBeInTheDocument()
+    expect(geo).not.toHaveBeenCalled()
   })
 })
 

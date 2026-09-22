@@ -10,7 +10,7 @@ export default function Hero() {
   const cta = user ? { to: homePathFor(user), label: 'Open my dashboard' } : { to: '/register', label: 'Join as Volunteer' }
 
   return (
-    <section id="home" className="pt-16 min-h-screen flex items-center bg-gradient-to-br from-primary-50 via-white to-orange-50">
+    <section id="home" className="pt-16 min-h-[85vh] flex items-center bg-gradient-to-br from-primary-50 via-white to-orange-50">
       <div className="container-custom section-padding">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>

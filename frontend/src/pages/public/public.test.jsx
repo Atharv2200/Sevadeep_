@@ -13,7 +13,7 @@ describe('public site', () => {
     renderApp('/')
     expect(await screen.findByRole('heading', { name: /about sevadeep/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /our activities/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /get in touch/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /get involved/i })).toBeInTheDocument()
     expect(screen.getByText('Clothes Distribution', { selector: 'h3' })).toBeInTheDocument()
   })
 

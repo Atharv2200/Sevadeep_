@@ -17,6 +17,11 @@ window.IntersectionObserver = IntersectionObserverStub
 Element.prototype.scrollIntoView = () => {}
 window.scrollTo = () => {}
 
+// jsdom does not implement object URLs (used for local photo previews).
+let objectUrlCount = 0
+window.URL.createObjectURL = () => `blob:test-${(objectUrlCount += 1)}`
+window.URL.revokeObjectURL = () => {}
+
 afterEach(() => {
   cleanup()
   window.localStorage.clear()

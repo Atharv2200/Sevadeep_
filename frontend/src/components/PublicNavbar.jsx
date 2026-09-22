@@ -10,8 +10,7 @@ const SECTION_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'About', to: '/#about' },
   { label: 'Activities', to: '/#activities' },
-  { label: 'Gallery', to: '/#gallery' },
-  { label: 'Contact', to: '/#contact' },
+  { label: 'Get Involved', to: '/#get-involved' },
 ]
 
 const DESKTOP_LINK = 'text-gray-700 hover:text-primary-600 transition-colors font-medium'

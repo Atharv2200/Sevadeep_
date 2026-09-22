@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderApp } from '../../test/renderApp'
-import { activity, listBody } from '../../test/fixtures'
+import { activity, emptyPage, listBody } from '../../test/fixtures'
 import { adminUser, mockApi, volunteerUser } from '../../test/mockFetch'
 
 const location = () => screen.getByTestId('location').textContent
@@ -98,7 +98,15 @@ describe('volunteer Activities page', () => {
 })
 
 describe('volunteer Activity detail page', () => {
-  const open = (overrides) => mockApi({ ...signedIn, 'GET /api/activities/act1': { body: { activity: activity(1, overrides) } } })
+  // No attendance record and no contribution by default, so the contribution
+  // section (loaded on its own) simply has nothing to show.
+  const open = (overrides) =>
+    mockApi({
+      ...signedIn,
+      'GET /api/activities/act1': { body: { activity: activity(1, overrides) } },
+      'GET /api/attendance': emptyPage,
+      'GET /api/contributions': emptyPage,
+    })
 
   it('shows the details, instructions and the server-computed attendance window', async () => {
     open({ title: 'Food drive', instructions: 'Bring your ID.\nWear closed shoes.' })

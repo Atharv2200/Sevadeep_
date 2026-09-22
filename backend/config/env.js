@@ -84,6 +84,17 @@ const mongoUri = isTest
   ? (process.env.MONGODB_URI_TEST || DEFAULT_TEST_URI).trim()
   : process.env.MONGODB_URI.trim();
 
+// Where contribution photos are written. A small storage module (services/storage.js)
+// is the only file that reads this, so local disk can later become object storage
+// without the Contribution API or business logic changing. Tests use a separate
+// directory so they never leave files behind in the development one.
+const DEFAULT_UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+const DEFAULT_UPLOAD_DIR_TEST = path.join(__dirname, '..', 'uploads-test');
+const uploadDirRaw = isTest
+  ? process.env.UPLOAD_DIR_TEST || DEFAULT_UPLOAD_DIR_TEST
+  : process.env.UPLOAD_DIR || DEFAULT_UPLOAD_DIR;
+const uploadDir = path.isAbsolute(uploadDirRaw) ? uploadDirRaw : path.join(__dirname, '..', uploadDirRaw);
+
 if (isTest) {
   const dbName = new URL(mongoUri).pathname.replace(/^\//, '');
   if (!dbName.endsWith('-test')) {
@@ -101,6 +112,7 @@ module.exports = {
   publicAppUrl: publicAppUrl.origin,
   allowedOrigins,
   maxAccuracyMeters,
+  uploadDir,
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
   // bcrypt work factor. Low in tests only, to keep the suite fast.
   bcryptRounds: isTest ? 4 : 12,
