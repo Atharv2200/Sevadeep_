@@ -34,6 +34,35 @@ describe('contributionsApi', () => {
     expect(mock.calls[0].body).toEqual({ status: 'REJECTED', revision: 1 })
   })
 
+  it('sends photos as multipart when creating with them', async () => {
+    const mock = mockApi({ 'POST /api/contributions': { status: 201, body: { contribution: { id: 'c1' } } } })
+    const photo = new File(['x'], 'a.jpg', { type: 'image/jpeg' })
+    await contributionsApi.create({ attendance: 'att1', description: 'Helped out.', photos: [photo] })
+
+    expect(mock.calls[0].body.attendance).toBe('att1')
+    expect(mock.calls[0].body.description).toBe('Helped out.')
+    expect(mock.calls[0].body.photos).toBe(photo)
+    expect(mock.calls[0].init.headers).toBeUndefined()
+  })
+
+  it('adds photos to an existing contribution as multipart', async () => {
+    const mock = mockApi({ 'POST /api/contributions/c1/photos': { status: 201, body: { contribution: { id: 'c1' } } } })
+    const photos = [new File(['x'], 'a.jpg', { type: 'image/jpeg' }), new File(['y'], 'b.jpg', { type: 'image/jpeg' })]
+    await contributionsApi.addPhotos('c1', photos)
+
+    expect(mock.calls[0].body.photos).toEqual(photos)
+  })
+
+  it('removes a photo with DELETE', async () => {
+    const mock = mockApi({ 'DELETE /api/contributions/c1/photos/p1': { body: { contribution: { id: 'c1' } } } })
+    await contributionsApi.removePhoto('c1', 'p1')
+    expect(mock.calls[0].key).toBe('DELETE /api/contributions/c1/photos/p1')
+  })
+
+  it('builds a same-origin photo URL with encoded ids', () => {
+    expect(contributionsApi.photoUrl('c/1', 'p 1')).toBe('/api/contributions/c%2F1/photos/p%201')
+  })
+
   it('lists with filters as query parameters', async () => {
     const mock = mockApi({ 'GET /api/contributions': { body: { items: [], page: 1, limit: 20, total: 0 } } })
     await contributionsApi.list({ page: 1, limit: 20, activity: 'act1', status: 'PENDING', volunteer: undefined })

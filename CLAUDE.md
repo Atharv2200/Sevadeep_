@@ -106,7 +106,7 @@ Routes stay thin. Services exist only where logic is multi-step, security-sensit
 3. Frontend routing, auth and layouts (public/volunteer/admin areas, admin volunteers/admins pages) — done.
 4. Activity system (model, CRUD, status transitions, attendance-window computation, volunteer and admin pages) — done.
 5. Secure attendance, QR and location (Attendance model, `qrTokenService`, `attendanceService`, `utils/geo`, check-in/out, live attendance, `/attend/:activityId`) — done. Phone testing needs an HTTPS tunnel; the Vite dev/preview server's hosts are widened only through `VITE_ALLOWED_HOSTS` (never `*`).
-6. Contributions, photos, verification, approved hours, stats.
+6. Contributions, photos, verification, approved hours, stats (Contribution model, `contributionService`, `statsService`, volunteer submission and edit, admin review; photo uploads via `middleware/upload.js` (Multer, memory storage), `services/imageProcessing.js` (Sharp: format/EXIF/GPS validation and stripping, auto-orient, resize cap), `services/storage.js` (local disk behind a swappable key-based interface), authenticated `GET /api/contributions/:id/photos/:photoId`) — done.
 7. Testing, security hardening, release (CI, production config, README, end-to-end run on real phones).
 
 Work phase by phase; do not start a later phase's features early.

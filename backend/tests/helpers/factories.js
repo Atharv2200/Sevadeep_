@@ -1,4 +1,5 @@
 const request = require('supertest');
+const sharp = require('sharp');
 const app = require('../../app');
 const { User } = require('../../models');
 const authService = require('../../services/authService');
@@ -149,6 +150,39 @@ async function checkInBody(activity, overrides = {}) {
   return { token: await qrToken(activity._id), ...pointAt(activity, 0), accuracy: 10, ...overrides };
 }
 
+// Real, decodable image buffers, generated on the fly instead of checked into the
+// repo as fixtures. `withExif` embeds EXIF (including GPS) and an orientation tag,
+// so a test can confirm both are gone after processing.
+async function jpegBuffer({ width = 20, height = 20, withExif = false } = {}) {
+  const image = sharp({ create: { width, height, channels: 3, background: { r: 200, g: 50, b: 50 } } });
+  if (withExif) {
+    image.withMetadata({
+      exif: { IFD0: { Make: 'TestCam' }, GPS: { GPSLatitude: '12/1,34/1,56/1', GPSLatitudeRef: 'N' } },
+      orientation: 6,
+    });
+  }
+  return image.jpeg().toBuffer();
+}
+
+function pngBuffer({ width = 20, height = 20 } = {}) {
+  return sharp({ create: { width, height, channels: 4, background: { r: 10, g: 200, b: 30, alpha: 0.5 } } })
+    .png()
+    .toBuffer();
+}
+
+function webpBuffer({ width = 20, height = 20 } = {}) {
+  return sharp({ create: { width, height, channels: 3, background: { r: 30, g: 30, b: 200 } } })
+    .webp()
+    .toBuffer();
+}
+
+const svgBuffer = () =>
+  Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>');
+
+// Not a real image at all; large enough to also double as an "oversized" payload
+// when a bigger size is passed.
+const garbageBuffer = (bytes = 20) => Buffer.alloc(bytes, 1);
+
 module.exports = {
   HOUR,
   MINUTE,
@@ -171,4 +205,9 @@ module.exports = {
   loggedInAdmin,
   cookieHeader,
   tokenFrom,
+  jpegBuffer,
+  pngBuffer,
+  webpBuffer,
+  svgBuffer,
+  garbageBuffer,
 };

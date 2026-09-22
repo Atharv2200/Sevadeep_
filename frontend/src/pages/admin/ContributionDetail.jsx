@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { contributionsApi } from '../../api/contributions'
+import ContributionPhotos from '../../components/contribution/ContributionPhotos'
 import ReviewOutcome from '../../components/contribution/ReviewOutcome'
 import { Alert, Button, Card, ErrorState, PageHeader, Spinner, StatusBadge, TextField } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
@@ -73,6 +74,15 @@ export default function ContributionDetail() {
               <StatusBadge status={contribution.status} />
             </div>
             <p className="text-gray-700 whitespace-pre-line break-words">{contribution.description}</p>
+            {contribution.photos?.length > 0 && (
+              <div className="mt-4">
+                <ContributionPhotos
+                  mode="readonly"
+                  photos={contribution.photos}
+                  photoUrlFor={(photoId) => contributionsApi.photoUrl(contribution.id, photoId)}
+                />
+              </div>
+            )}
           </Card>
 
           <Card>

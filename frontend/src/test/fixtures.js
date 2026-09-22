@@ -78,6 +78,7 @@ export function contribution(n = 1, overrides = {}) {
     approvedHours: null,
     suggestedHours: null,
     revision: 0,
+    photos: [],
     review: { reviewedAt: null, note: '' },
     activity: {
       id: `act${n}`,
@@ -91,6 +92,11 @@ export function contribution(n = 1, overrides = {}) {
     updatedAt: '2031-05-01T09:10:00.000Z',
     ...overrides,
   }
+}
+
+// A contribution photo as the API serializes it: metadata only, never the storage key.
+export function contributionPhoto(n = 1, overrides = {}) {
+  return { id: `photo${n}`, mimeType: 'image/jpeg', size: 102400, originalName: `photo${n}.jpg`, ...overrides }
 }
 
 // The admin view adds who submitted it and (once reviewed) who reviewed it.

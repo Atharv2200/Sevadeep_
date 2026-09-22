@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderApp } from '../../test/renderApp'
-import { adminContribution, listBody } from '../../test/fixtures'
+import { adminContribution, contributionPhoto, listBody } from '../../test/fixtures'
 import { adminUser, mockApi, volunteerUser } from '../../test/mockFetch'
 
 const signedIn = { 'GET /api/auth/me': { body: { user: adminUser } } }
@@ -204,6 +204,29 @@ describe('admin contribution review', () => {
     renderApp('/admin/contributions/con1')
     expect(await screen.findByText(/don't have access/i)).toBeInTheDocument()
     expect(mock.callsTo('GET /api/contributions/con1')).toHaveLength(0)
+  })
+
+  it('displays the submitted photos, read-only', async () => {
+    mockApi(
+      routes({
+        'GET /api/contributions/con1': {
+          body: { contribution: { ...pending, photos: [contributionPhoto(1), contributionPhoto(2)] } },
+        },
+      })
+    )
+    renderApp('/admin/contributions/con1')
+
+    expect(await screen.findByAltText('photo1.jpg')).toHaveAttribute('src', '/api/contributions/con1/photos/photo1')
+    expect(screen.getByAltText('photo2.jpg')).toHaveAttribute('src', '/api/contributions/con1/photos/photo2')
+    expect(screen.queryByLabelText('Add photos')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /remove photo/i })).not.toBeInTheDocument()
+  })
+
+  it('shows nothing extra when the contribution has no photos', async () => {
+    mockApi(routes())
+    renderApp('/admin/contributions/con1')
+    await screen.findByText(pending.description)
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 })
 

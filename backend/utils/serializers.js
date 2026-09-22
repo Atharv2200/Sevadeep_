@@ -128,6 +128,12 @@ function serializeContribution(contribution, { admin = false } = {}) {
     approvedHours: contribution.approvedHours ?? null,
     suggestedHours: suggestedHours(attendance),
     revision: contribution.revision,
+    photos: (contribution.photos ?? []).map((photo) => ({
+      id: String(photo._id),
+      mimeType: photo.mimeType,
+      size: photo.size,
+      originalName: photo.originalName,
+    })),
     review: {
       reviewedAt: contribution.review?.reviewedAt ?? null,
       note: contribution.review?.note ?? '',

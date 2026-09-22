@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderApp } from '../../test/renderApp'
-import { activity, attendanceRecord, contribution, emptyPage, listBody } from '../../test/fixtures'
+import { activity, attendanceRecord, contribution, contributionPhoto, emptyPage, listBody } from '../../test/fixtures'
 import { adminUser, mockApi, volunteerUser } from '../../test/mockFetch'
+
+const jpeg = (name = 'a.jpg') => new File(['x'.repeat(50)], name, { type: 'image/jpeg' })
 
 const signedIn = { 'GET /api/auth/me': { body: { user: volunteerUser } } }
 const open = activity(1)
@@ -132,6 +134,87 @@ describe('Contribution submission on the activity page', () => {
     expect(screen.getByText('Not approved')).toBeInTheDocument()
     expect(screen.getByText('Not enough detail')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('Contribution photos on the activity page', () => {
+  it('lets the volunteer preview selected photos, remove one, and submits the rest with the contribution', async () => {
+    const mock = mockApi(
+      base({
+        'GET /api/attendance': listBody([attended], 1, 1, 1),
+        'POST /api/contributions': { status: 201, body: { contribution: contribution(1, { photos: [contributionPhoto(1), contributionPhoto(2)] }) } },
+      })
+    )
+    renderApp('/volunteer/activities/act1')
+    await userEvent.type(await screen.findByLabelText('What did you do?'), 'Helped serve meals.')
+
+    await userEvent.upload(screen.getByLabelText('Add photos'), [jpeg('a.jpg'), jpeg('b.jpg'), jpeg('c.jpg')])
+    expect(screen.getAllByRole('img', { name: 'Selected photo' })).toHaveLength(3)
+    await userEvent.click(screen.getAllByRole('button', { name: /remove photo/i })[0])
+    expect(screen.getAllByRole('img', { name: 'Selected photo' })).toHaveLength(2)
+
+    await userEvent.click(screen.getByRole('button', { name: /submit contribution/i }))
+    expect(await screen.findByText('Pending review')).toBeInTheDocument()
+
+    const sent = mock.callsTo('POST /api/contributions')[0].body
+    expect(sent.description).toBe('Helped serve meals.')
+    expect(sent.photos).toHaveLength(2)
+    expect(sent.photos.map((f) => f.name).sort()).toEqual(['b.jpg', 'c.jpg'])
+  })
+
+  it('shows uploaded photos on a PENDING contribution and lets the volunteer add another', async () => {
+    const existing = contribution(1, { photos: [contributionPhoto(1)] })
+    const mock = mockApi(
+      base({
+        'GET /api/attendance': listBody([attended], 1, 1, 1),
+        'GET /api/contributions': listBody([existing], 1, 1, 1),
+        'POST /api/contributions/con1/photos': {
+          status: 201,
+          body: { contribution: { ...existing, photos: [contributionPhoto(1), contributionPhoto(2)], revision: 1 } },
+        },
+      })
+    )
+    renderApp('/volunteer/activities/act1')
+    expect(await screen.findByAltText('photo1.jpg')).toHaveAttribute('src', '/api/contributions/con1/photos/photo1')
+
+    await userEvent.upload(screen.getByLabelText('Add photos'), jpeg('new.jpg'))
+    expect(await screen.findByAltText('photo2.jpg')).toBeInTheDocument()
+    expect(mock.callsTo('POST /api/contributions/con1/photos')).toHaveLength(1)
+  })
+
+  it('lets the volunteer remove an uploaded photo from a PENDING contribution', async () => {
+    const existing = contribution(1, { photos: [contributionPhoto(1)] })
+    const mock = mockApi(
+      base({
+        'GET /api/attendance': listBody([attended], 1, 1, 1),
+        'GET /api/contributions': listBody([existing], 1, 1, 1),
+        'DELETE /api/contributions/con1/photos/photo1': { body: { contribution: { ...existing, photos: [], revision: 1 } } },
+      })
+    )
+    renderApp('/volunteer/activities/act1')
+    await screen.findByAltText('photo1.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: /remove photo/i }))
+    await waitFor(() => expect(screen.queryByAltText('photo1.jpg')).not.toBeInTheDocument())
+    expect(mock.callsTo('DELETE /api/contributions/con1/photos/photo1')).toHaveLength(1)
+  })
+
+  it('shows photos read-only, with no add or remove control, once VERIFIED', async () => {
+    mockApi(
+      base({
+        'GET /api/attendance': listBody([attended], 1, 1, 1),
+        'GET /api/contributions': listBody(
+          [contribution(1, { status: 'VERIFIED', approvedHours: 3, photos: [contributionPhoto(1)] })],
+          1,
+          1,
+          1
+        ),
+      })
+    )
+    renderApp('/volunteer/activities/act1')
+    expect(await screen.findByAltText('photo1.jpg')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Add photos')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /remove photo/i })).not.toBeInTheDocument()
   })
 })
 

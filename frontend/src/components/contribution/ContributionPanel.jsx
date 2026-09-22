@@ -1,16 +1,20 @@
 import { useState } from 'react'
+import ContributionPhotos from './ContributionPhotos'
 import ReviewOutcome from './ReviewOutcome'
 import { Alert, Button, StatusBadge, TextField } from '../ui'
 import { contributionsApi } from '../../api/contributions'
 import { CONTRIBUTION_LIMITS } from '../../lib/constants'
 import { formatDateTime } from '../../lib/format'
 
-// One volunteer's account of one attendance: submit it, edit it while it waits,
-// and see the outcome once an admin reviews it. `contribution` is null until one
-// has been submitted; `onChange` receives the server's copy after every save.
+// One volunteer's account of one attendance: submit it (with optional photos),
+// edit it while it waits, and see the outcome once an admin reviews it.
+// `contribution` is null until one has been submitted; `onChange` receives the
+// server's copy after every save. Photos may be added and removed independently
+// of the description, and only while the contribution is still PENDING.
 export default function ContributionPanel({ attendanceId, contribution, onChange, onConflict }) {
   const [editing, setEditing] = useState(false)
   const [description, setDescription] = useState('')
+  const [staged, setStaged] = useState([])
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -27,9 +31,10 @@ export default function ContributionPanel({ attendanceId, contribution, onChange
     try {
       const saved = contribution
         ? await contributionsApi.update(contribution.id, { description })
-        : await contributionsApi.create({ attendance: attendanceId, description })
+        : await contributionsApi.create({ attendance: attendanceId, description, photos: staged.map((item) => item.file) })
       onChange(saved)
       setEditing(false)
+      setStaged([])
     } catch (err) {
       // A conflict means the contribution already exists or was reviewed since it
       // was loaded here: show it, and let the caller refresh to the current state
@@ -62,6 +67,7 @@ export default function ContributionPanel({ attendanceId, contribution, onChange
           onChange={(event) => setDescription(event.target.value)}
           error={descriptionError}
         />
+        {!contribution && <ContributionPhotos mode="staged" staged={staged} onStagedChange={setStaged} />}
         <div className="flex gap-2">
           <Button type="submit" loading={submitting} disabled={description.trim() === ''}>
             {contribution ? 'Save changes' : 'Submit contribution'}
@@ -91,6 +97,13 @@ export default function ContributionPanel({ attendanceId, contribution, onChange
         Submitted {formatDateTime(contribution.createdAt)}
         {contribution.updatedAt !== contribution.createdAt && ` · Updated ${formatDateTime(contribution.updatedAt)}`}
       </p>
+      <ContributionPhotos
+        mode={contribution.status === 'PENDING' ? 'manage' : 'readonly'}
+        photos={contribution.photos}
+        photoUrlFor={(photoId) => contributionsApi.photoUrl(contribution.id, photoId)}
+        contributionId={contribution.id}
+        onChange={onChange}
+      />
       <ReviewOutcome contribution={contribution} />
     </div>
   )

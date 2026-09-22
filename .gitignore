@@ -5,6 +5,10 @@ node_modules/
 frontend/dist/
 dist/
 
+# Locally stored contribution photos
+backend/uploads/
+backend/uploads-test/
+
 # Environment / secrets (commit only the .env.example templates)
 .env
 .env.*

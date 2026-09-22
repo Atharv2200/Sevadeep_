@@ -3,6 +3,7 @@ const { objectId, pagination } = require('./common');
 const { STATUSES, HOURS_STEP, MAX_HOURS, LIMITS } = require('../config/contribution');
 
 const idParams = z.strictObject({ id: objectId });
+const photoParams = z.strictObject({ id: objectId, photoId: objectId });
 
 // Multi-line text: newlines and tabs are fine, other control characters are not.
 const block = (max) =>
@@ -50,4 +51,4 @@ const listQuery = { ...pagination, activity: objectId.optional(), status: z.enum
 const listForVolunteer = z.strictObject(listQuery);
 const listForAdmin = z.strictObject({ ...listQuery, volunteer: objectId.optional() });
 
-module.exports = { idParams, create, update, review, listForVolunteer, listForAdmin };
+module.exports = { idParams, photoParams, create, update, review, listForVolunteer, listForAdmin };

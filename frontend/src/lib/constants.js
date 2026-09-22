@@ -56,3 +56,11 @@ export const CONTRIBUTION_STATUSES = [
 export const CONTRIBUTION_LIMITS = { description: 5000, reviewNote: 2000 }
 export const APPROVED_HOURS_STEP = 0.25
 export const MAX_APPROVED_HOURS = 24
+
+// Mirrored from the API for client-side hints only; the server is the one that
+// enforces them.
+export const CONTRIBUTION_PHOTO_LIMITS = {
+  maxCount: 5,
+  maxBytes: 5 * 1024 * 1024,
+  allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+}

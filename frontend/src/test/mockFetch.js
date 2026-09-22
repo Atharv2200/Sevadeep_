@@ -5,6 +5,20 @@ export function jsonResponse(status, body) {
   return new Response(body === undefined || status === 204 ? null : JSON.stringify(body), { status, headers })
 }
 
+// Repeated keys (e.g. several `photos` files) collapse into an array, the way the
+// real backend (multer) sees them.
+function formDataToObject(form) {
+  const obj = {}
+  for (const [key, value] of form.entries()) {
+    if (key in obj) {
+      obj[key] = Array.isArray(obj[key]) ? [...obj[key], value] : [obj[key], value]
+    } else {
+      obj[key] = value
+    }
+  }
+  return obj
+}
+
 // Replaces window.fetch, so tests exercise the real API client, modules and pages
 // and only the network is faked. `routes` maps "METHOD /api/path" to either a
 // { status, body } object or a function (request) => { status, body }.
@@ -20,7 +34,7 @@ export function mockApi(routes = {}) {
       method,
       path: parsed.pathname,
       query: Object.fromEntries(parsed.searchParams),
-      body: init.body ? JSON.parse(init.body) : undefined,
+      body: init.body ? (init.body instanceof FormData ? formDataToObject(init.body) : JSON.parse(init.body)) : undefined,
       init,
     }
     calls.push(request)
