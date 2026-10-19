@@ -39,6 +39,14 @@ const activitySchema = new mongoose.Schema(
       min: LIMITS.attendanceMinutes.min,
       max: LIMITS.attendanceMinutes.max,
     },
+    creditHours: {
+      type: Number,
+      required: true,
+      min: 0.5,
+      max: 24,
+      default: 1,
+    },
+    linkedDonations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Donation' }],
     status: { type: String, enum: STATUSES, default: 'DRAFT' },
     // Set by the server just before the first attendance is recorded. It fences
     // latitude, longitude and radiusMeters against a check-in that is measuring

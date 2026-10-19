@@ -28,6 +28,7 @@ const timestamp = z.iso
   .refine((date) => !Number.isNaN(date.getTime()), 'Enter a valid date and time');
 
 const attendanceMinutes = z.number().int().min(LIMITS.attendanceMinutes.min).max(LIMITS.attendanceMinutes.max);
+const creditHours = z.number().min(LIMITS.creditHours.min, `Credit hours must be at least ${LIMITS.creditHours.min}`).max(LIMITS.creditHours.max, `Credit hours must be at most ${LIMITS.creditHours.max}`);
 
 const fields = {
   title: line(LIMITS.title.max, LIMITS.title.min),
@@ -47,9 +48,10 @@ const fields = {
   instructions: block(LIMITS.instructions.max),
   attendanceOpensMinutesBefore: attendanceMinutes,
   attendanceClosesMinutesAfter: attendanceMinutes,
+  creditHours: creditHours,
 };
 
-const required = ['title', 'description', 'category', 'startsAt', 'endsAt', 'locationName', 'latitude', 'longitude', 'radiusMeters'];
+const required = ['title', 'description', 'category', 'startsAt', 'endsAt', 'locationName', 'latitude', 'longitude', 'radiusMeters', 'creditHours'];
 const base = z.strictObject(
   Object.fromEntries(Object.entries(fields).map(([key, schema]) => [key, required.includes(key) ? schema : schema.optional()]))
 );

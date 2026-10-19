@@ -7,4 +7,5 @@ module.exports = {
   Activity: require('./Activity'),
   Attendance: require('./Attendance'),
   Contribution: require('./Contribution'),
+  Donation: require('./Donation'),
 };

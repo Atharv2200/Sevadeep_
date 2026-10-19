@@ -59,6 +59,7 @@ function serializeActivity(activity, { admin = false, now = new Date() } = {}) {
     longitude: activity.longitude,
     radiusMeters: activity.radiusMeters,
     instructions: activity.instructions,
+    creditHours: activity.creditHours,
     attendance: attendanceWindow(activity, now),
     createdAt: activity.createdAt,
     updatedAt: activity.updatedAt,
@@ -73,6 +74,7 @@ function serializeActivity(activity, { admin = false, now = new Date() } = {}) {
     createdBy: creator?._id ? { id: String(creator._id), name: creator.name ?? null } : { id: String(creator), name: null },
     allowedTransitions: TRANSITIONS[activity.status],
     locationLocked: Boolean(activity.locationLocked),
+    linkedDonations: activity.linkedDonations?.map((id) => String(id)) ?? [],
   };
 }
 
@@ -100,6 +102,21 @@ function serializeAttendance(attendance, activity, { admin = false, volunteer = 
       endsAt: activity.endsAt,
       status: activity.status,
     },
+    // New completion fields
+    creditHours: attendance.creditHours,
+    autoApproved: attendance.autoApproved,
+    completedAt: attendance.completedAt,
+    documentation: attendance.documentation
+      ? {
+          description: attendance.documentation.description,
+          photos: attendance.documentation.photos.map((photo) => ({
+            id: String(photo._id),
+            mimeType: photo.mimeType,
+            size: photo.size,
+            originalName: photo.originalName,
+          })),
+        }
+      : null,
   };
   if (!admin) return view;
 

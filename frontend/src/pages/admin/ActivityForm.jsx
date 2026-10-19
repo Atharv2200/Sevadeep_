@@ -22,10 +22,11 @@ const EMPTY_FORM = {
   instructions: '',
   attendanceOpensMinutesBefore: '30',
   attendanceClosesMinutesAfter: '30',
+  creditHours: '1',
 }
 
-const REQUIRED = ['title', 'category', 'description', 'startsAt', 'endsAt', 'locationName', 'latitude', 'longitude', 'radiusMeters']
-const NUMERIC = ['latitude', 'longitude', 'radiusMeters', 'attendanceOpensMinutesBefore', 'attendanceClosesMinutesAfter']
+const REQUIRED = ['title', 'category', 'description', 'startsAt', 'endsAt', 'locationName', 'latitude', 'longitude', 'radiusMeters', 'creditHours']
+const NUMERIC = ['latitude', 'longitude', 'radiusMeters', 'attendanceOpensMinutesBefore', 'attendanceClosesMinutesAfter', 'creditHours']
 const DATES = ['startsAt', 'endsAt']
 
 function toForm(activity) {
@@ -43,6 +44,7 @@ function toForm(activity) {
     instructions: activity.instructions ?? '',
     attendanceOpensMinutesBefore: String(activity.attendanceOpensMinutesBefore),
     attendanceClosesMinutesAfter: String(activity.attendanceClosesMinutesAfter),
+    creditHours: String(activity.creditHours ?? 1),
   }
 }
 
@@ -234,6 +236,17 @@ function Form({ activity, editing, back, onDone }) {
               max="240"
               step="1"
               {...props('attendanceClosesMinutesAfter')}
+            />
+            <TextField
+              label="Credit hours"
+              type="number"
+              inputMode="decimal"
+              min="0.5"
+              max="24"
+              step="0.5"
+              required
+              hint="Hours volunteers earn upon completing this activity with documentation"
+              {...props('creditHours')}
             />
           </div>
         </Card>

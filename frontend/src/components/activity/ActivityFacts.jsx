@@ -1,4 +1,4 @@
-import { CalendarClock, Clock, MapPin, Radar } from 'lucide-react'
+import { CalendarClock, Clock, MapPin, Radar, Award } from 'lucide-react'
 import { formatActivityTime, formatDateTime } from '../../lib/format'
 
 function Fact({ icon: Icon, label, children }) {
@@ -28,6 +28,7 @@ export default function ActivityFacts({ activity }) {
         {formatDateTime(attendance.opensAt)} – {formatDateTime(attendance.closesAt)}
       </Fact>
       <Fact icon={Radar} label="Check-in radius">{activity.radiusMeters} m from the venue</Fact>
+      <Fact icon={Award} label="Credit hours">{activity.creditHours} hours</Fact>
     </dl>
   )
 }
