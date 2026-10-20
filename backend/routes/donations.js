@@ -21,7 +21,7 @@ const listQuery = validate({
 
 const createBody = validate({
   body: {
-    amount: z.number().min(1, 'Amount must be at least 1'),
+    amount: z.number().min(1),
     activity: objectId.optional(),
     note: z.string().trim().max(500).optional(),
   },
@@ -35,7 +35,7 @@ const updateStatusBody = validate({
 
 const allocateBody = validate({
   body: {
-    activityIds: z.array(objectId).min(1, 'At least one activity must be specified'),
+    activityIds: z.array(objectId).min(1),
   },
 });
 

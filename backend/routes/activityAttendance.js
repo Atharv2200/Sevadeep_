@@ -2,7 +2,7 @@ const express = require('express');
 const validate = require('../middleware/validate');
 const requireRole = require('../middleware/requireRole');
 const { limiters } = require('../middleware/rateLimit');
-const upload = require('../middleware/upload');
+const { requirePhotosUpload } = require('../middleware/upload');
 const attendanceService = require('../services/attendanceService');
 const asyncHandler = require('../utils/asyncHandler');
 const activitySchemas = require('../validators/activity');
@@ -46,7 +46,7 @@ router.post(
 router.post(
   '/complete',
   requireRole('VOLUNTEER'),
-  upload.array('photos', 5),
+  requirePhotosUpload,
   validate({ params: activitySchemas.idParams, body: schemas.complete }),
   limiters.attendance,
   asyncHandler(async (req, res) => {
