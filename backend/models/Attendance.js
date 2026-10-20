@@ -66,5 +66,6 @@ attendanceSchema.index({ activity: 1, volunteer: 1 }, { unique: true });
 attendanceSchema.index({ volunteer: 1, checkedInAt: -1 });
 attendanceSchema.index({ activity: 1, checkedInAt: -1 });
 attendanceSchema.index({ autoApproved: 1 });
+attendanceSchema.index({ completedAt: -1 }); // For querying completed attendance
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

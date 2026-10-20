@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, LocateFixed } from 'lucide-react'
+import { ArrowLeft, LocateFixed, Sparkles } from 'lucide-react'
 import { activitiesApi } from '../../api/activities'
+import { aiApi } from '../../api/ai'
 import { Alert, Button, Card, ErrorState, PageHeader, Select, Spinner, TextField } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
 import { ACTIVITY_CATEGORIES, ACTIVITY_LIMITS, EDITABLE_ACTIVITY_STATUSES } from '../../lib/constants'
@@ -127,6 +128,8 @@ function Form({ activity, editing, back, onDone }) {
   const [submitting, setSubmitting] = useState(false)
   const [locating, setLocating] = useState(false)
   const [locationError, setLocationError] = useState(null)
+  const [generatingDescription, setGeneratingDescription] = useState(false)
+  const [descriptionError, setDescriptionError] = useState(null)
 
   const update = (field) => (event) => {
     setForm((previous) => ({ ...previous, [field]: event.target.value }))
@@ -147,6 +150,30 @@ function Form({ activity, editing, back, onDone }) {
       setLocationError(err)
     } finally {
       setLocating(false)
+    }
+  }
+
+  const generateDescription = async () => {
+    if (!form.category || !form.locationName || !form.startsAt || !form.endsAt) {
+      setDescriptionError(new Error('Please fill in category, location, and time first.'))
+      return
+    }
+
+    setGeneratingDescription(true)
+    setDescriptionError(null)
+    try {
+      const description = await aiApi.generateDescription({
+        category: form.category,
+        locationName: form.locationName,
+        startsAt: form.startsAt,
+        endsAt: form.endsAt,
+      })
+      setForm((previous) => ({ ...previous, description }))
+      setLocalErrors((previous) => ({ ...previous, description: undefined }))
+    } catch (err) {
+      setDescriptionError(err)
+    } finally {
+      setGeneratingDescription(false)
     }
   }
 
@@ -202,7 +229,32 @@ function Form({ activity, editing, back, onDone }) {
               </Select>
               {fieldError('category') && <p className="mt-1 text-sm text-red-600">{fieldError('category')}</p>}
             </div>
-            <TextField label="Description" multiline rows={5} maxLength={ACTIVITY_LIMITS.description} required {...props('description')} />
+            <div>
+              <div className="flex items-center justify-end mb-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={generateDescription}
+                  loading={generatingDescription}
+                  disabled={generatingDescription}
+                >
+                  {!generatingDescription && <Sparkles className="w-4 h-4" aria-hidden="true" />}
+                  AI Generate Description
+                </Button>
+              </div>
+              <TextField
+                label="Description"
+                multiline
+                rows={5}
+                maxLength={ACTIVITY_LIMITS.description}
+                required
+                value={form.description}
+                onChange={update('description')}
+                error={fieldError('description')}
+              />
+              {descriptionError && <p className="mt-1 text-sm text-red-600">{descriptionError.message}</p>}
+            </div>
             <TextField
               label="Instructions for volunteers"
               multiline

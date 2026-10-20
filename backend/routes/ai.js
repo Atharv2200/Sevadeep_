@@ -74,11 +74,11 @@ router.post(
   })
 );
 
-// Check Ollama availability
+// Check Groq availability
 router.get(
   '/status',
   asyncHandler(async (req, res) => {
-    const available = await aiService.checkOllamaAvailability();
+    const available = await aiService.checkGroqAvailability();
     res.json({ available });
   })
 );

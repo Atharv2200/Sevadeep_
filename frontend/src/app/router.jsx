@@ -11,6 +11,8 @@ import AdminActivityForm from '../pages/admin/ActivityForm'
 import AdminAdmins from '../pages/admin/Admins'
 import AdminContributionDetail from '../pages/admin/ContributionDetail'
 import AdminContributions from '../pages/admin/Contributions'
+import Donations from '../pages/admin/Donations'
+import DonationDetail from '../pages/admin/DonationDetail'
 import AdminOverview from '../pages/admin/Overview'
 import AdminVolunteerDetail from '../pages/admin/VolunteerDetail'
 import AdminVolunteers from '../pages/admin/Volunteers'
@@ -68,6 +70,8 @@ export default function AppRoutes() {
             <Route path="activities/:id/attendance" element={<AdminLiveAttendance />} />
             <Route path="contributions" element={<AdminContributions />} />
             <Route path="contributions/:id" element={<AdminContributionDetail />} />
+            <Route path="donations" element={<Donations />} />
+            <Route path="donations/:id" element={<DonationDetail />} />
             <Route path="volunteers" element={<AdminVolunteers />} />
             <Route path="volunteers/:id" element={<AdminVolunteerDetail />} />
             <Route path="admins" element={<AdminAdmins />} />

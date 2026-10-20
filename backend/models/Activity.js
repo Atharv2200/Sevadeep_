@@ -65,6 +65,7 @@ const activitySchema = new mongoose.Schema(
 
 activitySchema.index({ status: 1, startsAt: 1 });
 activitySchema.index({ startsAt: -1 });
+activitySchema.index({ linkedDonations: 1 });
 
 const Activity = mongoose.model('Activity', activitySchema);
 Activity.generateQrSecret = generateQrSecret;

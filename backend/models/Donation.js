@@ -21,5 +21,6 @@ donationSchema.index({ donor: 1, createdAt: -1 });
 donationSchema.index({ status: 1 });
 donationSchema.index({ activity: 1 });
 donationSchema.index({ allocatedTo: 1 });
+donationSchema.index({ donor: 1, status: 1 }); // Compound index for donor's donations by status
 
 module.exports = mongoose.model('Donation', donationSchema);
