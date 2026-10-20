@@ -4,6 +4,9 @@ const { attendanceWindow } = require('../utils/attendanceWindow');
 const { distanceMeters } = require('../utils/geo');
 const { serializeAttendance } = require('../utils/serializers');
 const { issueQr, verifyToken } = require('./qrTokenService');
+const storage = require('./storage');
+const { processImage } = require('./imageProcessing');
+const { PHOTO } = require('../config/contribution');
 
 // Everything here is decided by the server: who the caller is, the activity's state,
 // the attendance window, the QR token, and where the volunteer is. The browser only
@@ -155,6 +158,97 @@ async function listLive(activityId) {
   return { items: rows.map((row) => serializeAttendance(row, activity, { admin: true, volunteer: row.volunteer })), total };
 }
 
+// Validates and re-encodes each file (never trusting its declared type), then
+// writes it to storage under a random key. If any file in the batch fails —
+// processing or the write itself — every file this call already wrote is removed,
+// so a partial batch never leaves orphaned files behind.
+async function storePhotos(files) {
+  const saved = [];
+  try {
+    for (const file of files) {
+      const { buffer, mimeType, ext } = await processImage(file.buffer);
+      const key = await storage.save(buffer, ext);
+      saved.push({ key, mimeType, size: buffer.length, originalName: file.originalname.slice(0, 255) });
+    }
+    return saved;
+  } catch (error) {
+    await Promise.all(saved.map((photo) => storage.remove(photo.key)));
+    throw error;
+  }
+}
+
+// Records a completion with documentation (photos + description + location).
+// Volunteers scan QR after completing the activity and submit proof.
+// The system auto-credits the activity's creditHours.
+async function completeActivity(user, activityId, input, files = [], { now = new Date() } = {}) {
+  if (files.length === 0) {
+    throw new AppError(400, 'At least one photo is required as documentation', { code: 'VALIDATION_ERROR' });
+  }
+  if (files.length > PHOTO.maxCount) {
+    throw new AppError(400, `Documentation may have at most ${PHOTO.maxCount} photos`, { code: 'TOO_MANY_PHOTOS' });
+  }
+
+  const activity = await Activity.findById(activityId).select('+qrSecret');
+  assertVisible(activity);
+  assertNotClosed(activity);
+
+  // Verify the QR token
+  verifyToken(activity, input.token, now);
+
+  // Assess location
+  const locationEvidence = assessLocation(activity, input);
+
+  // Store photos
+  const photos = await storePhotos(files);
+
+  // Check if already completed
+  const existing = await Attendance.findOne({ activity: activity._id, volunteer: user.volunteer });
+  if (existing && existing.documentation) {
+    // Cleanup photos if already completed
+    await Promise.all(photos.map((photo) => storage.remove(photo.key)));
+    throw new AppError(409, 'You have already completed this activity', { code: 'ALREADY_COMPLETED' });
+  }
+
+  try {
+    // If attendance record exists, update it; otherwise create new one
+    const attendance = await Attendance.findOneAndUpdate(
+      { activity: activity._id, volunteer: user.volunteer },
+      {
+        $set: {
+          documentation: {
+            description: input.description,
+            photos,
+            locationEvidence,
+          },
+          creditHours: activity.creditHours,
+          autoApproved: true,
+          completedAt: now,
+          // Set check-in if not already set
+          checkedInAt: existing?.checkedInAt || now,
+          checkIn: existing?.checkIn || locationEvidence,
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    // Link donation to activity if this is the first completion
+    if (activity.linkedDonations && activity.linkedDonations.length > 0) {
+      await Activity.findByIdAndUpdate(activity._id, {
+        $set: { linkedDonations: activity.linkedDonations },
+      });
+    }
+
+    return serializeAttendance(attendance, activity);
+  } catch (error) {
+    // Cleanup photos on error
+    await Promise.all(photos.map((photo) => storage.remove(photo.key)));
+    if (error.code === 11000) {
+      throw new AppError(409, 'You have already completed this activity', { code: 'ALREADY_COMPLETED' });
+    }
+    throw error;
+  }
+}
+
 // Attendance history, newest first. A volunteer always gets their own records and
 // nothing else; an admin gets everyone's and may narrow by activity or volunteer.
 async function listHistory(user, { page, limit, activity, volunteer }) {
@@ -178,4 +272,4 @@ async function listHistory(user, { page, limit, activity, volunteer }) {
   };
 }
 
-module.exports = { checkIn, checkOut, assessLocation, getQr, listLive, listHistory, LIVE_LIMIT };
+module.exports = { checkIn, checkOut, completeActivity, assessLocation, getQr, listLive, listHistory, LIVE_LIMIT };

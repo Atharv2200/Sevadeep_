@@ -14,6 +14,10 @@ export const attendanceApi = {
   checkOut: (activityId, { latitude, longitude, accuracy }) =>
     api.post(`/activities/${enc(activityId)}/attendance/check-out`, { latitude, longitude, accuracy }).then((r) => r.attendance),
 
+  // Volunteer -> submit completion with documentation (photos + description + location)
+  complete: (activityId, formData) =>
+    api.postForm(`/activities/${enc(activityId)}/attendance/complete`, formData).then((r) => r.attendance),
+
   // Admin: everyone who has checked in to an activity -> { items, total } (at most 200).
   live: (activityId, options) => api.get(`/activities/${enc(activityId)}/attendance`, options),
 

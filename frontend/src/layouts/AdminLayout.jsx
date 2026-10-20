@@ -4,6 +4,7 @@ const NAV_ITEMS = [
   { to: '/admin', label: 'Overview', end: true },
   { to: '/admin/activities', label: 'Activities' },
   { to: '/admin/contributions', label: 'Contributions' },
+  { to: '/admin/donations', label: 'Donations' },
   { to: '/admin/volunteers', label: 'Volunteers' },
   { to: '/admin/admins', label: 'Admins' },
 ]

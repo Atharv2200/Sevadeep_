@@ -8,7 +8,9 @@ router.use('/volunteers', require('./volunteers'));
 router.use('/activities', require('./activities'));
 router.use('/attendance', require('./attendance'));
 router.use('/contributions', require('./contributions'));
+router.use('/donations', require('./donations'));
 router.use('/stats', require('./stats'));
+router.use('/ai', require('./ai'));
 
 // Public health check.
 router.get('/health', (req, res) => {

@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, LogIn, LogOut, MapPin, QrCode } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, LogIn, LogOut, MapPin, QrCode, Camera } from 'lucide-react'
 import { activitiesApi } from '../../api/activities'
 import { attendanceApi } from '../../api/attendance'
 import ActivityFacts from '../../components/activity/ActivityFacts'
-import { Alert, Button, Card, ErrorState, PageHeader, Spinner } from '../../components/ui'
+import { Alert, Button, Card, ErrorState, PageHeader, Spinner, TextField } from '../../components/ui'
+import PhotoUpload from '../../components/ui/PhotoUpload'
 import { useAsync } from '../../hooks/useAsync'
 import { formatDateTime } from '../../lib/format'
 import { LocationError, getPosition } from '../../lib/geolocation'
@@ -18,6 +19,7 @@ const FINAL_CODES = new Set([
   'ATTENDANCE_WINDOW_CLOSED',
   'ALREADY_CHECKED_OUT',
   'NOT_CHECKED_IN',
+  'ALREADY_COMPLETED',
   'NOT_FOUND',
   'FORBIDDEN',
 ])
@@ -46,6 +48,8 @@ export default function Attend() {
   const [error, setError] = useState(null)
   const [done, setDone] = useState(null)
   const [saved, setSaved] = useState(null)
+  const [description, setDescription] = useState('')
+  const [photos, setPhotos] = useState([])
   // Set synchronously so a fast double tap cannot start two requests before the
   // button has re-rendered as disabled. The server (unique index) remains the real guard.
   const busy = useRef(false)
@@ -92,16 +96,35 @@ export default function Attend() {
     try {
       const position = await getPosition()
       setPhase('submitting')
-      const result =
-        kind === 'in'
-          ? await attendanceApi.checkIn(activityId, { token, ...position })
-          : await attendanceApi.checkOut(activityId, position)
-      setSaved(result)
-      setDone(kind)
+
+      if (kind === 'complete') {
+        // Submit completion with documentation
+        const formData = new FormData()
+        formData.append('token', token)
+        formData.append('description', description)
+        formData.append('latitude', position.latitude)
+        formData.append('longitude', position.longitude)
+        formData.append('accuracy', position.accuracy)
+
+        photos.forEach((photo) => {
+          formData.append('photos', photo)
+        })
+
+        const result = await attendanceApi.complete(activityId, formData)
+        setSaved(result)
+        setDone(kind)
+      } else {
+        const result =
+          kind === 'in'
+            ? await attendanceApi.checkIn(activityId, { token, ...position })
+            : await attendanceApi.checkOut(activityId, position)
+        setSaved(result)
+        setDone(kind)
+      }
     } catch (err) {
       setError(err)
       // Someone (or another tab) already recorded it: show what the server has.
-      if (err.code === 'ALREADY_CHECKED_IN' || err.code === 'ALREADY_CHECKED_OUT') {
+      if (err.code === 'ALREADY_CHECKED_IN' || err.code === 'ALREADY_CHECKED_OUT' || err.code === 'ALREADY_COMPLETED') {
         setSaved(null)
         mineLoad.reload()
       }
@@ -121,6 +144,7 @@ export default function Attend() {
       <div className="space-y-6 max-w-3xl">
         {done === 'in' && <Alert tone="success" title="You're checked in">Thank you for volunteering.</Alert>}
         {done === 'out' && <Alert tone="success" title="You're checked out">Thank you for your time today.</Alert>}
+        {done === 'complete' && <Alert tone="success" title="Activity completed!">You've earned {activity.creditHours} hours. Thank you for your contribution!</Alert>}
 
         {error && (
           <Alert tone="error" title={error instanceof LocationError ? "We couldn't get your location" : 'Attendance was not recorded'}>
@@ -173,11 +197,11 @@ export default function Attend() {
           ) : token ? (
             <div className="space-y-4">
               <div className="flex gap-4 items-start">
-                <MapPin className="w-8 h-8 text-primary-600 flex-shrink-0" aria-hidden="true" />
+                <Camera className="w-8 h-8 text-primary-600 flex-shrink-0" aria-hidden="true" />
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Check in</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Complete activity</h2>
                   <p className="text-gray-600 mt-1">
-                    Tap the button and allow location access when your browser asks. We use it once, to confirm you are at the venue.
+                    After completing the activity, submit photos and a description as documentation. You'll earn {activity.creditHours} hours.
                   </p>
                 </div>
               </div>
@@ -186,10 +210,31 @@ export default function Attend() {
                   Attendance is not open right now. It runs from {formatDateTime(activity.attendance.opensAt)} to {formatDateTime(activity.attendance.closesAt)}.
                 </Alert>
               )}
-              <Button onClick={() => run('in')} loading={busyNow} disabled={busyNow || (Boolean(error) && !retryable)}>
-                {!busyNow && <LogIn className="w-4 h-4" aria-hidden="true" />}
-                {error && retryable ? 'Try again' : 'Check in'}
-              </Button>
+              <div className="space-y-4">
+                <TextField
+                  label="Describe your work"
+                  multiline
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  hint="What did you do? What impact did you make?"
+                  required
+                />
+                <PhotoUpload
+                  value={photos}
+                  onChange={setPhotos}
+                  maxPhotos={5}
+                  required
+                />
+                <Button
+                  onClick={() => run('complete')}
+                  loading={busyNow}
+                  disabled={busyNow || (Boolean(error) && !retryable) || photos.length === 0 || description.trim().length < 10}
+                >
+                  {!busyNow && <Camera className="w-4 h-4" aria-hidden="true" />}
+                  {error && retryable ? 'Try again' : 'Submit completion'}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex gap-4 items-start">

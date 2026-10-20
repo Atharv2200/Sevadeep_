@@ -3,23 +3,30 @@ const { Activity, Attendance, Contribution, User } = require('../models');
 
 // Derived statistics, always computed from authoritative records and never stored.
 //
-// activitiesAttended is the number of Attendance records. verifiedActivities and
-// verifiedHours count only VERIFIED Contributions; a REJECTED one contributes
-// nothing to either.
+// activitiesAttended is the number of Attendance records.
+// completionHours counts completion creditHours (auto-approved).
+// verifiedActivities and verifiedHours count only VERIFIED Contributions (legacy).
 async function getVolunteerStats(volunteerId) {
   const volunteer = new mongoose.Types.ObjectId(String(volunteerId));
 
-  const [activitiesAttended, verifiedAgg] = await Promise.all([
+  const [activitiesAttended, completionAgg, verifiedAgg] = await Promise.all([
     Attendance.countDocuments({ volunteer }),
+    Attendance.aggregate([
+      { $match: { volunteer, documentation: { $ne: null } } },
+      { $group: { _id: null, completedActivities: { $sum: 1 }, completionHours: { $sum: '$creditHours' } } },
+    ]),
     Contribution.aggregate([
       { $match: { volunteer, status: 'VERIFIED' } },
       { $group: { _id: null, verifiedActivities: { $sum: 1 }, verifiedHours: { $sum: '$approvedHours' } } },
     ]),
   ]);
+  const completion = completionAgg[0];
   const verified = verifiedAgg[0];
 
   return {
     activitiesAttended,
+    completedActivities: completion?.completedActivities ?? 0,
+    completionHours: completion ? Math.round(completion.completionHours * 100) / 100 : 0,
     verifiedActivities: verified?.verifiedActivities ?? 0,
     verifiedHours: verified ? Math.round(verified.verifiedHours * 100) / 100 : 0,
   };
@@ -35,10 +42,14 @@ function countsByStatus(rows) {
 // counter. Zero-data and every status is accounted for even when a group never
 // occurs (e.g. no REJECTED contributions yet).
 async function getAdminStats() {
-  const [volunteerRows, activityRows, attendanceTotal, contributionRows] = await Promise.all([
+  const [volunteerRows, activityRows, attendanceTotal, completionAgg, contributionRows] = await Promise.all([
     User.aggregate([{ $match: { role: 'VOLUNTEER' } }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
     Activity.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
     Attendance.countDocuments({}),
+    Attendance.aggregate([
+      { $match: { documentation: { $ne: null } } },
+      { $group: { _id: null, completedCount: { $sum: 1 }, completionHours: { $sum: '$creditHours' } } },
+    ]),
     Contribution.aggregate([
       { $group: { _id: '$status', count: { $sum: 1 }, hours: { $sum: '$approvedHours' } } },
     ]),
@@ -47,6 +58,7 @@ async function getAdminStats() {
   const volunteersByStatus = countsByStatus(volunteerRows);
   const activitiesByStatus = countsByStatus(activityRows);
   const contributionsByStatus = countsByStatus(contributionRows);
+  const completion = completionAgg[0];
   const verifiedHours = contributionRows.find((row) => row._id === 'VERIFIED')?.hours ?? 0;
 
   return {
@@ -64,6 +76,8 @@ async function getAdminStats() {
     },
     attendance: {
       total: attendanceTotal,
+      completed: completion?.completedCount ?? 0,
+      completionHours: completion ? Math.round(completion.completionHours * 100) / 100 : 0,
     },
     contributions: {
       pending: contributionsByStatus.PENDING ?? 0,

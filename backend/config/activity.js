@@ -26,6 +26,7 @@ const LIMITS = {
   address: { max: 300 },
   radiusMeters: { min: 25, max: 5000 },
   attendanceMinutes: { min: 0, max: 240 },
+  creditHours: { min: 0.5, max: 24 },
   maxDurationMs: 7 * 24 * 60 * 60 * 1000,
 };
 
