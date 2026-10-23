@@ -5,7 +5,9 @@ const STATUSES = ['PENDING', 'PROCESSED', 'ALLOCATED'];
 // Tracks donations from donors and their allocation to activities
 const donationSchema = new mongoose.Schema(
   {
-    donor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    donor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    donorName: { type: String, trim: true, maxlength: 100, default: '' },
+    donorEmail: { type: String, trim: true, lowercase: true, maxlength: 254, default: '' },
     amount: { type: Number, required: true, min: 1 },
     status: { type: String, enum: STATUSES, default: 'PENDING' },
     // Optional: linked to a specific activity at creation time
@@ -21,6 +23,7 @@ donationSchema.index({ donor: 1, createdAt: -1 });
 donationSchema.index({ status: 1 });
 donationSchema.index({ activity: 1 });
 donationSchema.index({ allocatedTo: 1 });
-donationSchema.index({ donor: 1, status: 1 }); // Compound index for donor's donations by status
+donationSchema.index({ donor: 1, status: 1 });
+donationSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Donation', donationSchema);

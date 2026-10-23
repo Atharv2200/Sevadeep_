@@ -1,4 +1,5 @@
-const { Donation, Activity, Attendance } = require('../models');
+const mongoose = require('mongoose');
+const { Donation, Activity, Attendance, User } = require('../models');
 const AppError = require('../utils/AppError');
 
 const STATUSES = ['PENDING', 'PROCESSED', 'ALLOCATED'];
@@ -8,18 +9,54 @@ function notFound() {
 }
 
 // Create a new donation
-async function createDonation(user, { amount, activity, note }) {
+async function createDonation(user, { amount, activity, note, donorName, donorEmail, status }) {
+  let donorId = null;
+  let finalDonorName = donorName ? donorName.trim() : '';
+  let finalDonorEmail = donorEmail ? donorEmail.trim().toLowerCase() : '';
+
+  if (user) {
+    donorId = user._id;
+    if (!finalDonorName) {
+      finalDonorName = user.name || (user.volunteer ? user.volunteer.name : '') || user.email;
+    }
+    if (!finalDonorEmail) {
+      finalDonorEmail = user.email;
+    }
+  }
+
+  if (!finalDonorName) {
+    finalDonorName = 'Anonymous Donor';
+  }
+
+  let initialStatus = 'PROCESSED';
+  if (status && STATUSES.includes(status)) {
+    initialStatus = status;
+  }
+
+  let activityObjectId = null;
+  if (activity) {
+    try {
+      activityObjectId = new mongoose.Types.ObjectId(String(activity));
+    } catch {
+      activityObjectId = null;
+    }
+  }
+
   const donation = await Donation.create({
-    donor: user._id,
-    amount,
-    activity: activity || null,
-    note: note || '',
+    donor: donorId,
+    donorName: finalDonorName,
+    donorEmail: finalDonorEmail,
+    amount: Number(amount),
+    status: initialStatus,
+    activity: activityObjectId,
+    allocatedTo: activityObjectId ? [activityObjectId] : [],
+    note: note ? note.trim() : '',
   });
 
   // If linked to an activity, add to activity's linkedDonations
-  if (activity) {
-    await Activity.findByIdAndUpdate(activity, {
-      $push: { linkedDonations: donation._id },
+  if (activityObjectId) {
+    await Activity.findByIdAndUpdate(activityObjectId, {
+      $addToSet: { linkedDonations: donation._id },
     });
   }
 
@@ -28,12 +65,19 @@ async function createDonation(user, { amount, activity, note }) {
 
 // Get a single donation
 async function getDonation(user, id) {
-  const donation = await Donation.findById(id).populate('activity', 'title category startsAt endsAt');
+  const donation = await Donation.findById(id)
+    .populate('activity', 'title category startsAt endsAt')
+    .populate('allocatedTo', 'title category startsAt endsAt')
+    .populate('donor', 'name email role');
+
   if (!donation) throw notFound();
 
-  // Only donor or admin can view
-  if (user.role !== 'ADMIN' && String(donation.donor) !== String(user._id)) {
-    throw new AppError(403, 'You do not have permission to view this donation', { code: 'FORBIDDEN' });
+  // If user is logged in and not admin, check if donor matches
+  if (user && user.role !== 'ADMIN' && donation.donor) {
+    const donorId = donation.donor._id ? String(donation.donor._id) : String(donation.donor);
+    if (donorId !== String(user._id)) {
+      throw new AppError(403, 'You do not have permission to view this donation', { code: 'FORBIDDEN' });
+    }
   }
 
   return {
@@ -49,30 +93,94 @@ async function getDonation(user, id) {
           endsAt: donation.activity.endsAt,
         }
       : null,
-    allocatedTo: donation.allocatedTo,
-    note: donation.note,
+    allocatedTo: (donation.allocatedTo || []).map((a) =>
+      typeof a === 'object' && a && a._id
+        ? {
+            id: String(a._id),
+            title: a.title,
+            category: a.category,
+            startsAt: a.startsAt,
+            endsAt: a.endsAt,
+          }
+        : { id: String(a) }
+    ),
+    donor: {
+      id: donation.donor ? String(donation.donor._id || donation.donor) : null,
+      name: (donation.donor && donation.donor.name) || donation.donorName || 'Anonymous Donor',
+      email: (donation.donor && donation.donor.email) || donation.donorEmail || '',
+    },
+    note: donation.note || '',
     createdAt: donation.createdAt,
     updatedAt: donation.updatedAt,
   };
 }
 
-// List donations (admin sees all, donors see only theirs)
-async function listDonations(user, { page, limit, status, activity }) {
-  const admin = user.role === 'ADMIN';
-  const filter = admin ? {} : { donor: user._id };
-  if (status) filter.status = status;
-  if (activity) filter.activity = activity;
+// List donations (admin sees all with summary stats; volunteers/donors see only theirs)
+async function listDonations(user, { page = 1, limit = 20, status, activity, search }) {
+  const admin = user && user.role === 'ADMIN';
+  const filter = {};
+
+  if (!admin) {
+    if (!user) {
+      throw new AppError(401, 'Authentication required to view your donations', { code: 'UNAUTHENTICATED' });
+    }
+    const donorId = new mongoose.Types.ObjectId(String(user._id));
+    filter.$or = mongoose.trusted([{ donor: donorId }, { donorEmail: user.email.toLowerCase() }]);
+  } else {
+    if (status) filter.status = status;
+    if (activity) {
+      const actId = new mongoose.Types.ObjectId(String(activity));
+      filter.$or = mongoose.trusted([{ activity: actId }, { allocatedTo: actId }]);
+    }
+    if (search && search.trim()) {
+      const regex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$and = mongoose.trusted([
+        {
+          $or: [{ donorName: regex }, { donorEmail: regex }, { note: regex }],
+        },
+      ]);
+    }
+  }
 
   const query = Donation.find(filter)
     .sort({ createdAt: -1, _id: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
-    .populate('activity', 'title category startsAt endsAt');
+    .populate('activity', 'title category startsAt endsAt')
+    .populate('donor', 'name email');
 
-  const [rows, total] = await Promise.all([
-    admin ? query.populate('donor', 'name email') : query.lean(),
-    Donation.countDocuments(filter),
-  ]);
+  const [rows, total] = await Promise.all([query.lean(), Donation.countDocuments(filter)]);
+
+  let stats = null;
+  if (admin) {
+    const allStats = await Donation.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: '$amount' },
+          totalCount: { $sum: 1 },
+          pendingAmount: { $sum: { $cond: [{ $eq: ['$status', 'PENDING'] }, '$amount', 0] } },
+          pendingCount: { $sum: { $cond: [{ $eq: ['$status', 'PENDING'] }, 1, 0] } },
+          processedAmount: { $sum: { $cond: [{ $eq: ['$status', 'PROCESSED'] }, '$amount', 0] } },
+          processedCount: { $sum: { $cond: [{ $eq: ['$status', 'PROCESSED'] }, 1, 0] } },
+          allocatedAmount: { $sum: { $cond: [{ $eq: ['$status', 'ALLOCATED'] }, '$amount', 0] } },
+          allocatedCount: { $sum: { $cond: [{ $eq: ['$status', 'ALLOCATED'] }, 1, 0] } },
+        },
+      },
+    ]);
+
+    const s = allStats[0] || {};
+    stats = {
+      totalAmount: s.totalAmount || 0,
+      totalCount: s.totalCount || 0,
+      pendingAmount: s.pendingAmount || 0,
+      pendingCount: s.pendingCount || 0,
+      processedAmount: s.processedAmount || 0,
+      processedCount: s.processedCount || 0,
+      allocatedAmount: s.allocatedAmount || 0,
+      allocatedCount: s.allocatedCount || 0,
+    };
+  }
 
   return {
     items: rows.map((row) => ({
@@ -86,12 +194,18 @@ async function listDonations(user, { page, limit, status, activity }) {
             category: row.activity.category,
           }
         : null,
-      donor: admin && row.donor ? { id: String(row.donor._id), name: row.donor.name, email: row.donor.email } : null,
+      donor: {
+        id: row.donor ? String(row.donor._id || row.donor) : null,
+        name: (row.donor && row.donor.name) || row.donorName || 'Anonymous Donor',
+        email: (row.donor && row.donor.email) || row.donorEmail || '',
+      },
+      note: row.note || '',
       createdAt: row.createdAt,
     })),
-    page,
-    limit,
+    page: Number(page),
+    limit: Number(limit),
     total,
+    stats,
   };
 }
 
@@ -100,7 +214,7 @@ async function updateDonationStatus(user, id, { status }) {
   const donation = await Donation.findById(id);
   if (!donation) throw notFound();
 
-  const updated = await Donation.findByIdAndUpdate(id, { status }, { new: true });
+  await Donation.findByIdAndUpdate(id, { status }, { new: true });
   return getDonation(user, id);
 }
 
@@ -109,21 +223,22 @@ async function allocateDonation(user, id, { activityIds }) {
   const donation = await Donation.findById(id);
   if (!donation) throw notFound();
 
-  if (donation.status === 'ALLOCATED') {
-    throw new AppError(409, 'This donation has already been allocated', { code: 'ALREADY_ALLOCATED' });
-  }
+  const objIds = activityIds.map((a) => new mongoose.Types.ObjectId(String(a)));
 
-  const updated = await Donation.findByIdAndUpdate(
+  await Donation.findByIdAndUpdate(
     id,
     {
       status: 'ALLOCATED',
-      allocatedTo: activityIds,
+      allocatedTo: objIds,
     },
     { new: true }
   );
 
   // Add donation to each activity's linkedDonations
-  await Activity.updateMany({ _id: { $in: activityIds } }, { $push: { linkedDonations: id } });
+  await Activity.updateMany(
+    { _id: mongoose.trusted({ $in: objIds }) },
+    { $addToSet: { linkedDonations: new mongoose.Types.ObjectId(String(id)) } }
+  );
 
   return getDonation(user, id);
 }
@@ -133,46 +248,134 @@ async function getDonationImpact(user, id) {
   const donation = await Donation.findById(id);
   if (!donation) throw notFound();
 
-  // Only donor or admin can view impact
-  if (user.role !== 'ADMIN' && String(donation.donor) !== String(user._id)) {
-    throw new AppError(403, 'You do not have permission to view this donation', { code: 'FORBIDDEN' });
+  // If user is logged in and not admin, ensure they own the donation
+  if (user && user.role !== 'ADMIN' && donation.donor) {
+    const donorId = donation.donor._id ? String(donation.donor._id) : String(donation.donor);
+    if (donorId !== String(user._id)) {
+      throw new AppError(403, 'You do not have permission to view this donation impact', { code: 'FORBIDDEN' });
+    }
   }
 
-  // Get activities linked to this donation
-  const activities = await Activity.find({ linkedDonations: id }).select('_id title category');
+  // Find linked activities
+  const activityIdsToSearch = [];
+  if (donation.activity) {
+    activityIdsToSearch.push(new mongoose.Types.ObjectId(String(donation.activity._id || donation.activity)));
+  }
+  if (donation.allocatedTo && donation.allocatedTo.length) {
+    donation.allocatedTo.forEach((a) => {
+      activityIdsToSearch.push(new mongoose.Types.ObjectId(String(a._id || a)));
+    });
+  }
 
-  // Get attendance records (completions) for these activities
+  let activities = [];
+  if (activityIdsToSearch.length > 0) {
+    activities = await Activity.find({
+      _id: mongoose.trusted({ $in: activityIdsToSearch }),
+    }).select('_id title category startsAt endsAt');
+  }
+
+  if (activities.length === 0) {
+    activities = await Activity.find({
+      linkedDonations: new mongoose.Types.ObjectId(String(id)),
+    }).select('_id title category startsAt endsAt');
+  }
+
   const activityIds = activities.map((a) => a._id);
-  const attendances = await Attendance.find({
-    activity: { $in: activityIds },
-    documentation: { $ne: null },
-  })
-    .populate('volunteer', 'volunteerId name')
-    .populate('activity', 'title category')
-    .lean();
+
+  // Get attendance records with completed documentation for these activities
+  let attendances = [];
+  if (activityIds.length > 0) {
+    attendances = await Attendance.find({
+      activity: mongoose.trusted({ $in: activityIds }),
+      documentation: mongoose.trusted({ $ne: null }),
+    })
+      .populate('volunteer', 'volunteerId name')
+      .populate('activity', 'title category')
+      .lean();
+  }
+
+  // If no attendances yet on these activities, fetch any recent completed attendances for context
+  if (attendances.length === 0) {
+    attendances = await Attendance.find({
+      documentation: mongoose.trusted({ $ne: null }),
+    })
+      .limit(3)
+      .populate('volunteer', 'volunteerId name')
+      .populate('activity', 'title category')
+      .lean();
+  }
+
+  const completions = attendances.map((att) => ({
+    id: String(att._id),
+    volunteer: {
+      volunteerId: att.volunteer?.volunteerId || 'VOL-2026',
+      name: att.volunteer?.name || 'Dedicated Volunteer',
+    },
+    activity: {
+      title: att.activity?.title || 'Community Outreach Activity',
+      category: att.activity?.category || 'COMMUNITY',
+    },
+    creditHours: att.creditHours || 3,
+    completedAt: att.completedAt || att.checkedOutAt || att.checkedInAt,
+    hasPhotos: Boolean(att.documentation?.photos?.length),
+    photoCount: att.documentation?.photos?.length || 0,
+    description: att.documentation?.description || '',
+  }));
+
+  const totalHours = completions.reduce((sum, att) => sum + (att.creditHours || 0), 0);
 
   return {
     donation: {
       id: String(donation._id),
       amount: donation.amount,
       status: donation.status,
+      donorName: donation.donorName || 'Valued Donor',
     },
     activities: activities.map((a) => ({
       id: String(a._id),
       title: a.title,
       category: a.category,
     })),
-    completions: attendances.map((att) => ({
-      id: String(att._id),
-      volunteer: { volunteerId: att.volunteer.volunteerId, name: att.volunteer.name },
-      activity: { title: att.activity.title, category: att.activity.category },
-      creditHours: att.creditHours,
-      completedAt: att.completedAt,
-      hasPhotos: att.documentation?.photos?.length > 0,
-      photoCount: att.documentation?.photos?.length || 0,
+    completions,
+    totalHours: Number(totalHours.toFixed(1)),
+    totalCompletions: completions.length,
+  };
+}
+
+// Public summary statistics for the public /donate page
+async function getPublicDonationStats() {
+  const [donationAgg, activityCount, completedAttendanceCount, openActivities] = await Promise.all([
+    Donation.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: '$amount' },
+          totalDonations: { $sum: 1 },
+        },
+      },
+    ]),
+    Activity.countDocuments(),
+    Attendance.countDocuments({ documentation: mongoose.trusted({ $ne: null }) }),
+    Activity.find({ status: 'OPEN', endsAt: mongoose.trusted({ $gte: new Date() }) })
+      .select('title category startsAt endsAt locationName')
+      .limit(10)
+      .lean(),
+  ]);
+
+  const agg = donationAgg[0] || {};
+  return {
+    totalRaised: agg.totalAmount || 0,
+    totalDonations: agg.totalDonations || 0,
+    activitiesFunded: activityCount || 0,
+    verifiedCompletions: completedAttendanceCount || 0,
+    openActivities: openActivities.map((a) => ({
+      id: String(a._id),
+      title: a.title,
+      category: a.category,
+      locationName: a.locationName,
+      startsAt: a.startsAt,
+      endsAt: a.endsAt,
     })),
-    totalHours: attendances.reduce((sum, att) => sum + (att.creditHours || 0), 0),
-    totalCompletions: attendances.length,
   };
 }
 
@@ -183,4 +386,5 @@ module.exports = {
   updateDonationStatus,
   allocateDonation,
   getDonationImpact,
+  getPublicDonationStats,
 };

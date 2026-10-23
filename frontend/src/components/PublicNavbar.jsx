@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, LogOut, Menu, User, X } from 'lucide-react'
+import { LayoutDashboard, LogOut, Menu, User, X, Heart } from 'lucide-react'
 import Logo from './Logo'
 import { useAuth } from '../auth/AuthContext'
 import { homePathFor } from '../lib/constants'
@@ -10,6 +10,7 @@ const SECTION_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'About', to: '/#about' },
   { label: 'Activities', to: '/#activities' },
+  { label: 'Donate', to: '/donate' },
   { label: 'Get Involved', to: '/#get-involved' },
 ]
 
@@ -73,7 +74,16 @@ export default function PublicNavbar() {
 
           <div className="hidden md:flex items-center gap-6">
             {SECTION_LINKS.map((link) => (
-              <Link key={link.label} to={link.to} className={DESKTOP_LINK}>
+              <Link
+                key={link.label}
+                to={link.to}
+                className={
+                  link.label === 'Donate'
+                    ? 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 text-primary-600 font-semibold hover:bg-primary-100 transition-colors'
+                    : DESKTOP_LINK
+                }
+              >
+                {link.label === 'Donate' && <Heart className="w-3.5 h-3.5 fill-primary-600" />}
                 {link.label}
               </Link>
             ))}
@@ -96,7 +106,17 @@ export default function PublicNavbar() {
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="md:hidden bg-white border-t">
           <div className="container-custom py-4 flex flex-col gap-4">
             {SECTION_LINKS.map((link) => (
-              <Link key={link.label} to={link.to} onClick={closeMenu} className={MOBILE_LINK}>
+              <Link
+                key={link.label}
+                to={link.to}
+                onClick={closeMenu}
+                className={
+                  link.label === 'Donate'
+                    ? `${MOBILE_LINK} font-bold text-primary-600 flex items-center gap-2`
+                    : MOBILE_LINK
+                }
+              >
+                {link.label === 'Donate' && <Heart className="w-4 h-4 fill-primary-600" />}
                 {link.label}
               </Link>
             ))}

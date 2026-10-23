@@ -18,6 +18,7 @@ import AdminVolunteerDetail from '../pages/admin/VolunteerDetail'
 import AdminVolunteers from '../pages/admin/Volunteers'
 import VolunteerAttend from '../pages/volunteer/Attend'
 import VolunteerContributions from '../pages/volunteer/Contributions'
+import VolunteerDonations from '../pages/volunteer/Donations'
 import VolunteerHistory from '../pages/volunteer/History'
 import VolunteerActivities from '../pages/volunteer/Activities'
 import VolunteerActivityDetail from '../pages/volunteer/ActivityDetail'
@@ -27,6 +28,7 @@ import PublicLayout from '../layouts/PublicLayout'
 import ChangePassword from '../pages/account/ChangePassword'
 import NotFound from '../pages/NotFound'
 import Home from '../pages/public/Home'
+import Donate from '../pages/public/Donate'
 import Login from '../pages/public/Login'
 import Register from '../pages/public/Register'
 
@@ -36,6 +38,7 @@ export default function AppRoutes() {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<Home />} />
+        <Route path="donate" element={<Donate />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="*" element={<NotFound />} />
@@ -51,6 +54,7 @@ export default function AppRoutes() {
             <Route path="activities/:id" element={<VolunteerActivityDetail />} />
             <Route path="history" element={<VolunteerHistory />} />
             <Route path="contributions" element={<VolunteerContributions />} />
+            <Route path="donations" element={<VolunteerDonations />} />
             <Route path="profile" element={<VolunteerProfile />} />
             <Route path="*" element={<NotFound compact />} />
           </Route>

@@ -91,10 +91,9 @@ async function seed() {
     }
 
     console.log('--- Seeding Activities ---');
-    const existingActivitiesCount = await Activity.countDocuments();
-    let activities = [];
+    let activities = await Activity.find().limit(6);
 
-    if (existingActivitiesCount === 0) {
+    if (activities.length === 0) {
       const now = Date.now();
       const HOUR = 3600 * 1000;
       const DAY = 24 * HOUR;
@@ -205,8 +204,7 @@ async function seed() {
       ]);
       console.log(`✓ Seeded ${activities.length} activities (OPEN, DRAFT, CLOSED)`);
     } else {
-      activities = await Activity.find().limit(6);
-      console.log(`ℹ Found ${existingActivitiesCount} existing activities`);
+      console.log(`ℹ Found ${activities.length} existing activities`);
     }
 
     console.log('--- Seeding Attendance & Completions ---');
@@ -382,45 +380,92 @@ async function seed() {
       console.log(`ℹ Found ${existingContributionsCount} existing contributions`);
     }
 
-    console.log('--- Seeding Donations ---');
-    const existingDonationsCount = await Donation.countDocuments();
-    if (existingDonationsCount === 0) {
-      const foodActivity = activities.find((a) => a.title.includes('Food')) || activities[0];
+    console.log('--- Seeding Rich Donations ---');
+    await Donation.deleteMany({});
+    const foodActivity = activities.find((a) => a.title.includes('Food')) || activities[0];
+    const elderlyActivityDoc = activities.find((a) => a.title.includes('Elderly Care')) || activities[4];
+    const clothesActivityDoc = activities.find((a) => a.title.includes('Winter Warmth')) || activities[5];
 
-      const donation1 = await Donation.create({
-        donor: admin._id,
-        amount: 15000,
-        status: 'ALLOCATED',
-        activity: foodActivity?._id || null,
-        allocatedTo: foodActivity ? [foodActivity._id] : [],
-        note: 'Earmarked for raw grains, pulses, and oil containers for 100 family kits.',
-      });
+    const d1 = await Donation.create({
+      donor: null,
+      donorName: 'Apex Global CSR Foundation',
+      donorEmail: 'csr@apexglobal.org',
+      amount: 25000,
+      status: 'ALLOCATED',
+      activity: foodActivity?._id || null,
+      allocatedTo: foodActivity ? [foodActivity._id] : [],
+      note: 'Sponsored raw grain, pulse, and cooking oil kits for 150 local families.',
+    });
 
-      if (foodActivity) {
-        await Activity.updateOne(
-          { _id: foodActivity._id },
-          { $addToSet: { linkedDonations: donation1._id } }
-        );
-      }
+    const d2 = await Donation.create({
+      donor: admin._id,
+      donorName: 'Sevadeep Admin',
+      donorEmail: admin.email,
+      amount: 15000,
+      status: 'ALLOCATED',
+      activity: elderlyActivityDoc?._id || null,
+      allocatedTo: elderlyActivityDoc ? [elderlyActivityDoc._id] : [],
+      note: 'Dedicated grant for senior citizen medical vitals check and recreation.',
+    });
 
-      await Donation.create({
-        donor: vol1User._id,
-        amount: 5000,
-        status: 'PROCESSED',
-        note: 'General fund towards education supplies and book distribution.',
-      });
+    const d3 = await Donation.create({
+      donor: null,
+      donorName: 'Dr. Sunita Kapoor',
+      donorEmail: 'sunita.kapoor@example.com',
+      amount: 10000,
+      status: 'PROCESSED',
+      note: 'General fund towards community first-aid and dental screening supplies.',
+    });
 
-      await Donation.create({
-        donor: admin._id,
-        amount: 2500,
-        status: 'PENDING',
-        note: 'Support for safety equipment, gloves, and cleanliness drive gear.',
-      });
+    const d4 = await Donation.create({
+      donor: vol1User._id,
+      donorName: 'Aarav Sharma',
+      donorEmail: vol1Email,
+      amount: 5000,
+      status: 'ALLOCATED',
+      activity: clothesActivityDoc?._id || null,
+      allocatedTo: clothesActivityDoc ? [clothesActivityDoc._id] : [],
+      note: 'Direct volunteer contribution for winter blanket bundles and warm wear.',
+    });
 
-      console.log('✓ Seeded Donations (ALLOCATED, PROCESSED, PENDING)');
-    } else {
-      console.log(`ℹ Found ${existingDonationsCount} existing donations`);
+    const d5 = await Donation.create({
+      donor: vol2User._id,
+      donorName: 'Priya Patel',
+      donorEmail: vol2Email,
+      amount: 3500,
+      status: 'PROCESSED',
+      note: 'Monthly pledge for children textbooks and stationery drives.',
+    });
+
+    const d6 = await Donation.create({
+      donor: null,
+      donorName: 'Rohan Mehta',
+      donorEmail: 'rohan.mehta@example.com',
+      amount: 2000,
+      status: 'PENDING',
+      note: 'Earmarked for heavy-duty safety gloves and beach debris disposal bags.',
+    });
+
+    const d7 = await Donation.create({
+      donor: null,
+      donorName: 'Anonymous Donor',
+      donorEmail: '',
+      amount: 1000,
+      status: 'PENDING',
+      note: 'In honor of our tireless volunteers. Keep inspiring us!',
+    });
+
+    if (foodActivity) {
+      await Activity.updateOne({ _id: foodActivity._id }, { $addToSet: { linkedDonations: d1._id } });
     }
+    if (elderlyActivityDoc) {
+      await Activity.updateOne({ _id: elderlyActivityDoc._id }, { $addToSet: { linkedDonations: d2._id } });
+    }
+    if (clothesActivityDoc) {
+      await Activity.updateOne({ _id: clothesActivityDoc._id }, { $addToSet: { linkedDonations: d4._id } });
+    }
+
+    console.log('✓ Seeded 7 rich Donations (ALLOCATED, PROCESSED, PENDING with linked activities)');
 
     console.log('\n========================================');
     console.log('         SEEDING COMPLETE!              ');

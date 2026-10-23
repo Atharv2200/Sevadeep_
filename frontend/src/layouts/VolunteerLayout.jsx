@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { to: '/volunteer/activities', label: 'Activities' },
   { to: '/volunteer/history', label: 'History' },
   { to: '/volunteer/contributions', label: 'Contributions' },
+  { to: '/volunteer/donations', label: 'My Donations' },
   { to: '/volunteer/profile', label: 'Profile' },
 ]
 

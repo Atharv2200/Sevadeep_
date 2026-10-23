@@ -10,7 +10,7 @@ const { serializeActivity } = require('../utils/serializers');
 // here from constants, never from request input, are marked trusted.
 const { trusted } = mongoose;
 
-const isAdmin = (user) => user.role === 'ADMIN';
+const isAdmin = (user) => Boolean(user && user.role === 'ADMIN');
 
 function notFound() {
   return new AppError(404, 'Activity not found', { code: 'NOT_FOUND' });

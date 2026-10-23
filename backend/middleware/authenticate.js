@@ -45,8 +45,26 @@ function build({ allowPasswordChangePending }) {
   });
 }
 
+const optionalAuthenticate = asyncHandler(async (req, res, next) => {
+  const token = req.cookies?.[COOKIE_NAME];
+  if (!token) return next();
+
+  try {
+    const payload = verifyToken(token);
+    if (typeof payload.sub === 'string' && OBJECT_ID.test(payload.sub)) {
+      const user = await User.findById(payload.sub);
+      if (user && user.tokenVersion === payload.tv && user.status === 'ACTIVE') {
+        req.user = user;
+      }
+    }
+  } catch {
+    // Ignore invalid/expired cookie on optional routes
+  }
+  next();
+});
+
 const authenticate = build({ allowPasswordChangePending: false });
 // For the few routes a user with a pending password change may still call.
 const authenticateAllowingPasswordChange = build({ allowPasswordChangePending: true });
 
-module.exports = { authenticate, authenticateAllowingPasswordChange };
+module.exports = { authenticate, authenticateAllowingPasswordChange, optionalAuthenticate };

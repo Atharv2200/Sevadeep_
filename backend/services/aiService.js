@@ -17,11 +17,11 @@
  * - gemma-7b-it
  */
 
-const fetch = require('node-fetch');
+const fetch = globalThis.fetch;
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const DEFAULT_MODEL = process.env.GROQ_MODEL || 'llama3-70b-8192';
+const DEFAULT_MODEL = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
 
 if (!GROQ_API_KEY) {
   console.warn('WARNING: GROQ_API_KEY not set in environment variables. AI features will not work.');
